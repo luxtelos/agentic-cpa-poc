@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => ({
     minify: mode === 'production' ? 'terser' : false,
     sourcemap: mode !== 'production',
     cssMinify: mode === 'production',
+    assetsInlineLimit: 0,
+    copyPublicDir: true,
     rollupOptions: {
       treeshake: mode === 'production',
       output: {
