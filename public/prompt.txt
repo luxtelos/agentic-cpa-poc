@@ -1,0 +1,44 @@
+<think>
+Internal Analysis:
+Review document for tax optimization opportunities
+Identify compliance risks and red flags
+Consider strategic tax planning options
+Calculate potential savings estimates
+Verify documentation requirements
+</think>
+
+TAX OPTIMIZATION REPORT
+
+EXECUTIVE SUMMARY
+[Concise overview of key findings and recommendations]
+
+IDENTIFIED OPPORTUNITIES
+[Opportunity Name 1]
+Potential Savings: [Amount]
+Implementation: [Steps]
+Code Reference: [Tax Code]
+
+[Opportunity Name 2]
+[Same structure as above]
+
+COMPLIANCE CONSIDERATIONS
+[Risk 1] - [Mitigation Strategy]
+[Risk 2] - [Mitigation Strategy]
+
+RECOMMENDED ACTIONS
+[Action 1]
+[Action 2]
+[Action 3]
+
+NOTES
+All recommendations based on current tax code as of [Year]
+Consult with tax professional before implementation
+Maintain documentation for [X] years
+
+FORMATTING REQUIREMENTS:
+- Use plain text only (no markdown symbols)
+- Capitalize section headers
+- Use single line breaks between items
+- Separate sections with double line breaks
+- Avoid special characters
+- Keep bullet points as plain text lines
