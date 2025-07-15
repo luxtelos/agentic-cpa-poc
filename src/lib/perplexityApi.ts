@@ -1,5 +1,3 @@
-const PROXY_BASE = 'http://localhost:9000/proxy/';
-
 export async function getChatCompletion(content: string) {
   console.log('[DEBUG] API - Preparing sync request payload');
   const payload = await preparePerplexityApiPayload(content);
@@ -9,7 +7,7 @@ export async function getChatCompletion(content: string) {
     timestamp: new Date().toISOString()
   });
 
-  const proxiedUrl = `${PROXY_BASE}chat/completions`;
+  const proxiedUrl = `${import.meta.env.VITE_PROXY_BASE}${import.meta.env.VITE_PROXY_URL_FORMAT}`;
   const response = await fetch(proxiedUrl, {
     method: 'POST',
     headers: {
@@ -36,8 +34,17 @@ export async function getChatCompletion(content: string) {
 
 export async function preparePerplexityApiPayload(content: string) {
   console.log('[DEBUG] API - Loading system prompt');
-  const promptResponse = await fetch('/prompt.txt');
-  const systemPrompt = await promptResponse.text();
+  const customPrompt = localStorage.getItem('customPrompt');
+  let systemPrompt = customPrompt;
+  
+  if (!systemPrompt) {
+    const promptResponse = await fetch('/prompt.txt');
+    systemPrompt = await promptResponse.text();
+    console.log('[DEBUG] API - Using default prompt from file');
+  } else {
+    console.log('[DEBUG] API - Using custom prompt from localStorage');
+  }
+
   console.log('[DEBUG] API - System prompt loaded', {
     length: systemPrompt.length,
     timestamp: new Date().toISOString()
@@ -50,7 +57,14 @@ export async function preparePerplexityApiPayload(content: string) {
         role: "system", 
         content: `Tax Expert Instructions:\n${systemPrompt}\n
         In your response, extract everything after <think> tags, output a clean, 
-        ready-to-render tax recommendation report suitable for a PDF.`
+        ready-to-render tax recommendation report suitable for a PDF.
+        FORMATTING REQUIREMENTS:
+        - Use plain text only (no markdown symbols)
+        - Capitalize section headers
+        - Use single line breaks between items
+        - Separate sections with double line breaks
+        - Avoid special characters
+        - Keep bullet points as plain text lines`
       },
       { role: "user", content: content }
     ],
