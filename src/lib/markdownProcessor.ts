@@ -75,10 +75,11 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
     .use(remarkParse)
     .use(remarkGfm)
 
-  const tree = await processor.parse(markdown)
+  const tree = processor.parse(markdown)
+  const ast = await processor.run(tree)
   const sections: PdfSection[] = []
 
-  // Process AST nodes
+  // Process transformed AST nodes
   const processNode = (node: Node) => {
     switch (node.type) {
       case 'heading': {
