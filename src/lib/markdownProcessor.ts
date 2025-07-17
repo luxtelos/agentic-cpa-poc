@@ -66,8 +66,10 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
     )
     .replace(/TABLE_START\n([\s\S]*?)\nTABLE_END/g, (_, table) => {
       const rows = table.split('\n').filter(Boolean);
-      const header = `| ${rows[0].split('|').join(' | ')} |\n|${rows[0].split('|').map(() => '---').join('|')}|`;
-      const body = rows.slice(1).map(row => `| ${row.split('|').join(' | ')} |`).join('\n');
+      const parseRow = (row: string) => row.match(/(?:\\\||[^|])+/g)?.map(cell => cell.trim()) || [];
+      const headerCells = parseRow(rows[0]);
+      const header = `| ${headerCells.join(' | ')} |\n|${headerCells.map(() => '---').join('|')}|`;
+      const body = rows.slice(1).map(row => `| ${parseRow(row).join(' | ')} |`).join('\n');
       return `${header}\n${body}\n\n`;
     });
 
