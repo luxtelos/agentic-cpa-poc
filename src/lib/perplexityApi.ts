@@ -105,7 +105,6 @@ export async function preparePerplexityApiPayload(content: string) {
     ],
     search_mode: "web",
     reasoning_effort: "medium",
-    // max_tokens: 1024,
     temperature: 0.1,
     top_p: 0.9,
     top_k: 0,
@@ -301,12 +300,4 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
     });
     throw error; // Let the renderer handle fallback
   }
-}
-
-function chunkArray<T>(array: T[], size: number): T[][] {
-  const chunks = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
 }

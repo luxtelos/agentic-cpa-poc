@@ -74,7 +74,9 @@ export function calculateVerticalSpacing(
   return Math.max(calculated, settings.min);
 }
 
+const FOOTER_MARGIN_MM = 20;
+
 export function shouldPageBreak(currentY: number, contentHeight: number, pageHeight: number): boolean {
-  // Add 20mm buffer for footer space
-  return (currentY + contentHeight) > (pageHeight - 20); 
+  // Add buffer for footer space
+  return (currentY + contentHeight) > (pageHeight - FOOTER_MARGIN_MM);
 }
