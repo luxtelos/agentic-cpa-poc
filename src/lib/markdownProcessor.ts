@@ -83,11 +83,20 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
     switch (node.type) {
       case 'heading': {
         const headingNode = node as HeadingNode
-        sections.push({
-          type: 'heading',
-          content: headingNode.children[0].value,
-          level: headingNode.depth
-        })
+        if (headingNode.children?.[0]?.value) {
+          sections.push({
+            type: 'heading',
+            content: headingNode.children[0].value,
+            level: headingNode.depth
+          })
+        } else {
+          console.warn('Invalid heading node structure:', headingNode)
+          sections.push({
+            type: 'heading',
+            content: 'Untitled Section',
+            level: headingNode.depth || 1
+          })
+        }
         break
       }
       case 'paragraph': {

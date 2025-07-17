@@ -17,6 +17,7 @@ export function PdfRenderer({
 }: PdfRendererProps) {
   const [renderMode, setRenderMode] = useState<'gpu' | 'cpu'>('gpu');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [lastRenderTime, setLastRenderTime] = useState(0);
   const performanceMetrics = useRef(measurePdfRenderPerformance());
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export function PdfRenderer({
 
       const renderTime = performance.now() - startTime;
       performanceMetrics.current.recordSample(renderTime);
+      setLastRenderTime(renderTime);
       onRenderComplete?.(renderTime);
 
       // Trigger download
@@ -92,7 +94,7 @@ export function PdfRenderer({
     if (performanceMetrics.current.shouldFallbackToCpu() && renderMode === 'gpu') {
       setRenderMode('cpu');
     }
-  }, [performanceMetrics.current.lastRenderTime]);
+  }, [lastRenderTime]);
 
   return (
     <div className={`pdf-renderer ${renderMode}-mode`}>

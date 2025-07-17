@@ -12,7 +12,18 @@ export function supportsGPUAcceleration() {
   }
 }
 
-export function measurePdfRenderPerformance() {
+interface PerformanceMetrics {
+  lastRenderTime: number;
+  averageRenderTime: number;
+  samples: number[];
+  recordSample: (time: number) => PerformanceMetrics;
+  shouldFallbackToCpu: () => boolean;
+}
+
+const MAX_AVERAGE_RENDER_TIME = 1000;
+const MAX_SINGLE_RENDER_TIME = 1500;
+
+export function measurePdfRenderPerformance(): PerformanceMetrics {
   return {
     lastRenderTime: 0,
     averageRenderTime: 0,
@@ -25,7 +36,8 @@ export function measurePdfRenderPerformance() {
       return this;
     },
     shouldFallbackToCpu() {
-      return this.averageRenderTime > 1000 || this.lastRenderTime > 1500;
+      return this.averageRenderTime > MAX_AVERAGE_RENDER_TIME || 
+             this.lastRenderTime > MAX_SINGLE_RENDER_TIME;
     }
   };
 }
