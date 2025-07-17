@@ -52,7 +52,7 @@ export async function preparePerplexityApiPayload(content: string) {
   });
 
   return {
-    model: model || "sonar-pro",
+    model: model,
     messages: [
       { 
         role: "system", 
