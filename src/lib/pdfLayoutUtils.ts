@@ -58,7 +58,7 @@ export function measureText(
 export function calculateVerticalSpacing(
   margin: number,
   contentHeight: number,
-  type?: 'heading' | 'paragraph' | 'table' | 'list'
+  type?: 'heading' | 'paragraph' | 'table' | 'list' | 'section'
 ): number {
   // Type-specific spacing with minimum values
   const typeSettings = {
@@ -66,6 +66,7 @@ export function calculateVerticalSpacing(
     paragraph: { multiplier: 1.8, min: 20 },
     table: { multiplier: 2.2, min: 25 }, 
     list: { multiplier: 1.8, min: 20 },
+    section: { multiplier: 2.5, min: 40 }, // Extra spacing for key sections
     default: { multiplier: 1.5, min: 15 }
   };
 

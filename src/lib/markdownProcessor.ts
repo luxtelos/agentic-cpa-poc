@@ -65,10 +65,16 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
   // Debug log raw content
   console.debug('[MarkdownProcessor] Raw content length:', content.length);
 
-  // Convert API response to markdown with strict table formatting
+  // Convert API response to markdown with strict formatting
   const markdown = content
+    // Remove duplicate lines
+    .split('\n')
+    .filter((line, i, arr) => !line.trim() || arr.indexOf(line) === i)
+    .join('\n')
     // Handle sections
     .replace(/## (.*?)\n/g, '## $1\n')
+    // Validate key-value pairs (must have text before colon)
+    .replace(/^: (.*)$/gm, '') // Remove standalone colons
     // Handle tables with strict formatting
     .replace(/\|(.+?)\|/g, (match) => match.replace(/\s+/g, ' ').trim())
     // Handle tables from TABULAR FORMAT blocks

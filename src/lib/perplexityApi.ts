@@ -56,8 +56,7 @@ export async function preparePerplexityApiPayload(content: string) {
     messages: [
       { 
         role: "system", 
-        content: `In your response, extract everything after <think> tags, output a clean, 
-        ready-to-render tax recommendation report suitable for a PDF.
+        content: `In your response, extract everything after <think> tags, output a clean. 
           Tax Expert Instructions:
           ${systemPrompt}
 
@@ -65,38 +64,33 @@ export async function preparePerplexityApiPayload(content: string) {
       - Use standardized formatting for financial data and metrics
       - Keep enough single line spaces between the end of each header section's content and the start of next header section.
       - Every sentence must be complete and properly punctuated
-      - Use specific dollar amounts and percentages throughout
       - No truncation or incomplete sections
 
   
       CRITICAL OUTPUT REQUIREMENTS:
       You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
-      Produce _only_ the Markdown content (no JSON, no extra commentary). Follow these rules:
+      Produce Markdown compatible content that is PDF compatible (no JSON, no extra commentary). Follow these rules:
           1. **Structure**
             - Use #…###### for headings.
-            - Write paragraphs as plain text separated by blank lines.
-            - Create bullet lists with \\\`- \\\` or numbered lists with \\\`1. \\\`.
             - Format tables using standard Markdown pipe syntax with consistent spacing.
-            - Keep one row per line, no line breaks within cells
             - Tables must have:
               - Clear headers in first row. No empty header cells
+              - Keep one row per line, no line breaks within cells
               - Consistent column alignment
-              - No duplicate rows
-              - Numeric values right-aligned
-              - Text values left-aligned
+              - Numeric values are right-aligned
+              - Text values are left-aligned
 
           2. **Key-Value Formatting Rules:**
-            - Always include both key name AND value when using colons e.g. "Taxable Income: $718,789"
-            - Never use standalone colons e.g. ": $718,789" is invalid
-            - For definition lists, use: Key Term => Definition text
-            - Validate uniqueness of:
-              - Table rows
-              - Key-value pairs
-              - Section headers
-
-          2. **Styling**
-            - Use **bold**, _italic_, \\\`inline code\\\`, and [links](https://example.com) freely.
-            - Avoid any wrapper objects or metadata—output pure Markdown.
+            - Always include both key name AND value when using colons (e.g. "Taxable Income: $718,789")
+            - Never use standalone colons (": $718,789" is invalid)
+            - Required labels for strategy sections:
+              * "Estimated Savings: $X"
+              * "Implementation Timeline: TEXT" 
+              * "Complexity Level: Low/Medium/High"
+              * "Required Documentation: ITEMS"
+              * "Risk Level: TEXT"
+            - Remove duplicate content blocks
+            - Validate all section headers are properly titled
 
           3. **Data Formatting**
             - Dates as \\\`YYYY-MM-DD\\\`
