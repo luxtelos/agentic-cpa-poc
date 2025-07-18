@@ -61,21 +61,38 @@ export async function preparePerplexityApiPayload(content: string) {
           Tax Expert Instructions:
           ${systemPrompt}
 
+      FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:
+      - Use standardized formatting for financial data and metrics
+      - Keep enough single line spaces between the end of each header section's content and the start of next header section.
+      - Every sentence must be complete and properly punctuated
+      - Use specific dollar amounts and percentages throughout
+      - No truncation or incomplete sections
+
+  
       CRITICAL OUTPUT REQUIREMENTS:
-      You are generating a comprehensive tax optimization strategy report that will be parsed by React-PDF components and rendered as a professional PDF. 
-      You are a Markdown-to-PDF converter. When given a user request, produce _only_ the Markdown content (no JSON, no extra commentary). Follow these rules:   
+      You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
+      Produce _only_ the Markdown content (no JSON, no extra commentary). Follow these rules:
           1. **Structure**
             - Use #…###### for headings.
             - Write paragraphs as plain text separated by blank lines.
             - Create bullet lists with \\\`- \\\` or numbered lists with \\\`1. \\\`.
-            - Include code blocks with triple backticks and a language tag, e.g.
-              \\\`\\\`\\\`javascript
-              // code here
-              \\\`\\\`\\\`
             - Format tables using standard Markdown pipe syntax with consistent spacing.
             - Keep one row per line, no line breaks within cells
-            - Add blockquotes with \\\`> \\\`.
-            - Embed images with \\\`![alt text](url)\\\`.
+            - Tables must have:
+              - Clear headers in first row. No empty header cells
+              - Consistent column alignment
+              - No duplicate rows
+              - Numeric values right-aligned
+              - Text values left-aligned
+
+          2. **Key-Value Formatting Rules:**
+            - Always include both key name AND value when using colons e.g. "Taxable Income: $718,789"
+            - Never use standalone colons e.g. ": $718,789" is invalid
+            - For definition lists, use: Key Term => Definition text
+            - Validate uniqueness of:
+              - Table rows
+              - Key-value pairs
+              - Section headers
 
           2. **Styling**
             - Use **bold**, _italic_, \\\`inline code\\\`, and [links](https://example.com) freely.
@@ -89,36 +106,6 @@ export async function preparePerplexityApiPayload(content: string) {
 
           4. **Compatibility**
             - Ensure all elements are supported by **react-markdown** (with \\\`remark-gfm\\\`) and map cleanly to PDF components in **@react-pdf/renderer** or **react-to-pdf**.
-
-          When you respond, output nothing but the Markdown that fulfills the user’s request.
-
-      CONTENT REQUIREMENTS:
-      1. COMPLETENESS: Provide full, detailed analysis with no truncated sentences - minimum 3000 words
-      2. DEPTH: Include comprehensive implementation steps, timelines, risk assessments, and financial projections
-      3. STRUCTURE: Follow professional CPA advisory firm report format with clear hierarchical sections
-      4. ACTIONABILITY: Provide specific, measurable recommendations with exact deadlines and dollar amounts
-      5. FINANCIAL DATA: Include accurate, up-to-date financial data and forecasts
-      6. PROFESSIONALISM: Maintain a formal tone and use industry-standard terminology
-      7. CLARITY: Avoid ambiguity in recommendations and explanations like undefined terms or keywords. You CANNOT have lines that contain "• undefined" or "undefined"
-
-      FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:
-      - Output clean, structured text with semantic markers that React components can parse
-      - Use consistent section markers that JavaScript can easily identify
-      - Each section marker must start one a new line
-      - Use clear, consistent semantic markers
-      - Use clear, parseable delimiters for different content types
-      - Structure tables using consistent column separators
-      - Use standardized formatting for financial data and metrics
-      - Keep enough single line spaces between the end of each header section's content and the start of next header section.
-      - DO NOT word wrap text in tables or code blocks.
-
-      QUALITY STANDARDS:
-      - Every sentence must be complete and properly punctuated
-      - Use specific dollar amounts and percentages throughout
-      - Include exact implementation dates and deadlines
-      - Professional business language appropriate for C-suite executives
-      - Consistent formatting using the specified semantic markers
-      - No truncation or incomplete sections
 
     The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
       },

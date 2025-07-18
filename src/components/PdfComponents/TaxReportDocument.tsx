@@ -1,6 +1,6 @@
 import { Document, Page, StyleSheet, View, Text } from '@react-pdf/renderer';
 import { PdfTable } from './PdfTable';
-import type { Strategy, TaxReport } from '../../lib/pdfTypes';
+import type { Strategy, TaxReport, PdfTableData } from '../../lib/pdfTypes';
 import { StrategyCard } from './StrategyCard';
 import { formatCurrency } from '../../lib/pdfUtils';
 
@@ -48,6 +48,11 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: 12
+  },
+  paragraph: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    marginBottom: 10
   }
 });
 
@@ -60,9 +65,34 @@ export const TaxReportDocument = ({ report }: { report: TaxReport }) => {
     return acc;
   }, [] as Strategy[]);
 
+  const renderSection = (title: string, content?: string | PdfTableData) => {
+    if (!content) return null;
+    
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {typeof content === 'string' ? (
+          <PdfTable content={content} />
+        ) : (
+          <PdfTable {...content} />
+        )}
+      </View>
+    );
+  };
+
+  const renderTextSection = (title: string, content?: string) => {
+    if (!content) return null;
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.paragraph}>{content}</Text>
+      </View>
+    );
+  };
+
   return (
     <Document>
-      {/* Header Page - Contains ONLY the report header */}
+      {/* Header Page */}
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
           <Text style={styles.title}>Tax Optimization Report</Text>
@@ -72,56 +102,72 @@ export const TaxReportDocument = ({ report }: { report: TaxReport }) => {
         </View>
       </Page>
 
-      {/* Content Page - Starts with Strategies */}
+      {/* Content Pages */}
       <Page size="A4" style={styles.page}>
+        {/* Executive Summary */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Executive Summary</Text>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Industry:</Text>
+            <Text style={styles.summaryValue}>{report.executiveSummary.industry}</Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Revenue:</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(report.executiveSummary.revenue)}
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Current Tax Rate:</Text>
+            <Text style={styles.summaryValue}>
+              {report.executiveSummary.currentTaxRate.toFixed(2)}%
+            </Text>
+          </View>
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryLabel}>Projected Savings:</Text>
+            <Text style={styles.summaryValue}>
+              {formatCurrency(report.executiveSummary.projectedSavings)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Peer Benchmarking */}
+        {renderTextSection('Peer Benchmarking Results', report.executiveSummary.benchmarkingNotes)}
+
+        {/* Prioritized Strategies */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Prioritized Strategies</Text>
           {uniqueStrategies.map((strategy, i) => (
             <StrategyCard key={strategy.id || i} strategy={strategy} />
           ))}
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Implementation Roadmap</Text>
-          {report.roadmapTable ? (
-            <PdfTable content={report.roadmapTable} />
-          ) : report.roadmap?.length > 0 ? (
-            <PdfTable
-              content={`
-| Quarter   | Actions                     | Deadlines    |
-|-----------|-----------------------------|-------------|
-${report.roadmap.map(item => 
-  `| ${item.quarter.padEnd(9)} | ${item.actions.padEnd(27)} | ${item.deadlines.padEnd(12)} |`
-).join('\n')}`}
-            />
-          ) : (
-            <Text style={styles.summaryValue}>No roadmap data available</Text>
-          )}
-        </View>
-
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Industry:</Text>
-          <Text style={styles.summaryValue}>{report.executiveSummary.industry}</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Revenue:</Text>
-          <Text style={styles.summaryValue}>
-            {formatCurrency(report.executiveSummary.revenue)}
-          </Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Current Tax Rate:</Text>
-          <Text style={styles.summaryValue}>
-            {report.executiveSummary.currentTaxRate.toFixed(2)}%
-          </Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryLabel}>Projected Savings:</Text>
-          <Text style={styles.summaryValue}>
-            {formatCurrency(report.executiveSummary.projectedSavings)}
-          </Text>
-        </View>
       </Page>
+
+      {/* Additional Pages */}
+      <Page size="A4" style={styles.page}>
+        {/* Implementation Roadmap */}
+        {renderSection('Implementation Roadmap', report.roadmapTable)}
+
+        {/* Compliance Calendar */}
+        {renderSection('Compliance Calendar', report.complianceCalendarTable)}
+
+        {/* Projected Savings */}
+        {renderSection('Total Projected Savings', report.projectedSavingsTable)}
+      </Page>
+
+      {/* Risk Assessment Page */}
+      {report.riskAssessment && (
+        <Page size="A4" style={styles.page}>
+          {renderTextSection('Risk Assessment & Compliance', report.riskAssessment)}
+        </Page>
+      )}
+
+      {/* Legal Disclaimer */}
+      {report.legalDisclaimer && (
+        <Page size="A4" style={styles.page}>
+          {renderTextSection('Legal Disclaimer', report.legalDisclaimer)}
+        </Page>
+      )}
     </Document>
-);
+  );
 };
