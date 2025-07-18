@@ -31,7 +31,8 @@ export const TaxReportSchema = z.object({
     revenue: z.number(),
     taxableIncome: z.number(),
     currentTaxRate: z.number(),
-    projectedSavings: z.number()
+    projectedSavings: z.number(),
+    benchmarkingNotes: z.string().optional()
   }),
   strategies: z.array(StrategySchema),
   roadmap: z.array(RoadmapItemSchema),
@@ -47,7 +48,18 @@ export type Strategy = z.infer<typeof StrategySchema>;
 export type RoadmapItem = z.infer<typeof RoadmapItemSchema>;
 export type TaxReport = z.infer<typeof TaxReportSchema> & {
   roadmapTable?: string;
+  complianceCalendarTable?: string;
+  projectedSavingsTable?: string;
+  riskAssessment?: string;
+  legalDisclaimer?: string;
 };
+
+export interface PdfTableData {
+  headers: string[];
+  rows: (string | number)[][]; 
+  colWidths?: number[];
+  mergedCells?: [number, number][];
+}
 
 // Helper function to validate and clean report data
 export const validateTaxReport = (data: unknown): TaxReport => {
