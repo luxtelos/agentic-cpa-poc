@@ -239,23 +239,26 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
 
         case 'paragraph': {
           const content = section.content || '[Content not available]';
-          const paragraphDimensions = measureText(
-            page,
-            content,
-            font,
-            12,
-            500
-          );
+          const fontSize = 12;
+          const lineHeight = fontSize * 1.2;
+          const lines = wrapText(content, font, fontSize, 500);
+
           console.debug(`[PDF] Drawing paragraph: ${content.substring(0, 30)}...`);
-          page.drawText(content, {
-            x: 60,
-            y: yPosition,
-            size: 12,
-            font,
-            color: rgb(0, 0, 0),
-            maxWidth: 500,
+
+          // Draw each wrapped line
+          lines.forEach((line) => {
+            page.drawText(line, {
+              x: 60,
+              y: yPosition,
+              size: fontSize,
+              font,
+              color: rgb(0, 0, 0),
+            });
+            yPosition -= lineHeight;
           });
-          yPosition -= calculateVerticalSpacing(5, paragraphDimensions.height, 'paragraph' as PdfSectionType);
+
+          const paragraphHeight = lines.length * lineHeight;
+          yPosition -= calculateVerticalSpacing(5, paragraphHeight, 'paragraph' as PdfSectionType) - paragraphHeight;
           break;
         }
 
@@ -302,45 +305,40 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
             colWidths.forEach((w, i) => colWidths[i] = w * (1 + scale));
           }
           
-          // Draw each row with empty row spacing
+          // Draw each row with wrapped text
+          let tableHeight = 0;
           rows.forEach((row, rowIndex) => {
             const isHeader = rowIndex === 0 || row.includes('---');
             const cells = row.split('|').slice(1, -1);
-            
-          // Draw content row - disable wrapping by setting maxWidth to column width
-          cells.forEach((cell, colIndex) => {
-            const text = cell.trim();
-            const textWidth = measureText(page, text, isHeader ? boldFont : font, isHeader ? 12 : 11, 1000).width;
-            
-            // Expand column if needed to fit content
-            colWidths[colIndex] = Math.max(colWidths[colIndex], textWidth + 20);
-            
-            page.drawText(text, {
-              x: 50 + colIndex * colWidths[colIndex],
-              y: yPosition - (rowIndex * 25),
-              size: isHeader ? 12 : 11,
-              font: isHeader ? boldFont : font,
-              color: isHeader ? rgb(0, 0, 0.5) : rgb(0, 0, 0),
-              maxWidth: colWidths[colIndex] // No longer subtracting padding
+
+            const fontSize = isHeader ? 12 : 11;
+            const lineHeight = fontSize * 1.2;
+            let rowHeight = 0;
+
+            cells.forEach((cell, colIndex) => {
+              const text = cell.trim();
+              const lines = wrapText(text, isHeader ? boldFont : font, fontSize, colWidths[colIndex]);
+
+              lines.forEach((line, lineIndex) => {
+                const x = 50 + colWidths.slice(0, colIndex).reduce((a, b) => a + b, 0);
+                const y = yPosition - tableHeight - lineIndex * lineHeight;
+                page.drawText(line, {
+                  x,
+                  y,
+                  size: fontSize,
+                  font: isHeader ? boldFont : font,
+                  color: isHeader ? rgb(0, 0, 0.5) : rgb(0, 0, 0)
+                });
+              });
+
+              rowHeight = Math.max(rowHeight, lines.length * lineHeight);
             });
+
+            tableHeight += rowHeight;
           });
 
-          // Draw empty row below (except after last row)
-          if (rowIndex < rows.length - 1) {
-            cells.forEach((_, colIndex) => {
-              page.drawText('', {
-                x: 50 + colIndex * colWidths[colIndex],
-                y: yPosition - (rowIndex * 25) - 15, // Position empty row
-                size: 11,
-                font,
-                color: rgb(0, 0, 0),
-                maxWidth: colWidths[colIndex] - 10
-              });
-            });
-          }
-          });
-          
-          yPosition -= (rows.length * 25) + 15; // Adjusted for new row height
+          yPosition -= tableHeight;
+          yPosition -= calculateVerticalSpacing(5, tableHeight, 'table') - tableHeight;
           break;
         }
 
