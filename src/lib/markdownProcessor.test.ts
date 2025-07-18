@@ -35,7 +35,7 @@ describe('markdownProcessor', () => {
     expect(sections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({type: 'heading', content: 'Comprehensive Tax Minimization Strategy Report'}),
-        expect.objectContaining({type: 'heading', content: 'Executive Summary'}),
+        expect.objectContaining({type: 'section', content: 'Executive Summary'}),
         expect.objectContaining({type: 'heading', content: 'Implementation Roadmap'}),
         expect.objectContaining({type: 'heading', content: 'Total Projected Savings'}),
         expect.objectContaining({type: 'heading', content: 'Compliance Calendar'})
