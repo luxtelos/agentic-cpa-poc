@@ -93,13 +93,20 @@ export function PdfViewer({ pdfData, className = '' }: PdfViewerProps) {
         </Button>
       </div>
 
-      <iframe
-        src={pdfUrl}
-        width="100%"
-        height="100%"
-        className="min-h-[600px]"
-        title="PDF Preview"
-      />
+      <div className="overflow-x-auto w-full h-full">
+        <iframe
+          src={pdfUrl}
+          width="100%"
+          height="100%"
+          className="min-h-[600px]"
+          title="PDF Preview"
+          style={{ 
+            minWidth: '842px', // Match PDF page width
+            width: '100%',
+            maxWidth: 'none'
+          }}
+        />
+      </div>
     </div>
   );
 }

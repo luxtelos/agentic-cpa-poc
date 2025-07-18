@@ -63,22 +63,54 @@ export async function preparePerplexityApiPayload(content: string) {
 
       CRITICAL OUTPUT REQUIREMENTS:
       You are generating a comprehensive tax optimization strategy report that will be parsed by React-PDF components and rendered as a professional PDF. 
-      The raw text output must be structured for automatic parsing and styling.
+      You are a Markdown-to-PDF converter. When given a user request, produce _only_ the Markdown content (no JSON, no extra commentary). Follow these rules:   
+          1. **Structure**
+            - Use #…###### for headings.
+            - Write paragraphs as plain text separated by blank lines.
+            - Create bullet lists with \\\`- \\\` or numbered lists with \\\`1. \\\`.
+            - Include code blocks with triple backticks and a language tag, e.g.
+              \\\`\\\`\\\`javascript
+              // code here
+              \\\`\\\`\\\`
+            - Format tables using standard Markdown pipe syntax with consistent spacing.
+            - Keep one row per line, no line breaks within cells
+            - Add blockquotes with \\\`> \\\`.
+            - Embed images with \\\`![alt text](url)\\\`.
+
+          2. **Styling**
+            - Use **bold**, _italic_, \\\`inline code\\\`, and [links](https://example.com) freely.
+            - Avoid any wrapper objects or metadata—output pure Markdown.
+
+          3. **Data Formatting**
+            - Dates as \\\`YYYY-MM-DD\\\`
+            - Currency as \\\`$XX,XXX\\\`
+            - Percentages as \\\`XX%\\\`
+            - Empty cells as \\\`-\\\`
+
+          4. **Compatibility**
+            - Ensure all elements are supported by **react-markdown** (with \\\`remark-gfm\\\`) and map cleanly to PDF components in **@react-pdf/renderer** or **react-to-pdf**.
+
+          When you respond, output nothing but the Markdown that fulfills the user’s request.
 
       CONTENT REQUIREMENTS:
       1. COMPLETENESS: Provide full, detailed analysis with no truncated sentences - minimum 3000 words
       2. DEPTH: Include comprehensive implementation steps, timelines, risk assessments, and financial projections
       3. STRUCTURE: Follow professional CPA advisory firm report format with clear hierarchical sections
       4. ACTIONABILITY: Provide specific, measurable recommendations with exact deadlines and dollar amounts
+      5. FINANCIAL DATA: Include accurate, up-to-date financial data and forecasts
+      6. PROFESSIONALISM: Maintain a formal tone and use industry-standard terminology
+      7. CLARITY: Avoid ambiguity in recommendations and explanations like undefined terms or keywords. You CANNOT have lines that contain "• undefined" or "undefined"
 
       FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:
       - Output clean, structured text with semantic markers that React components can parse
-      - Use CONSISTENT section markers that JavaScript can easily identify
-      - NO raw markdown symbols (no * ** # ## ### _ \` [ ] etc.)
-      - NO HTML tags or angle brackets
+      - Use consistent section markers that JavaScript can easily identify
+      - Each section marker must start one a new line
+      - Use clear, consistent semantic markers
       - Use clear, parseable delimiters for different content types
       - Structure tables using consistent column separators
       - Use standardized formatting for financial data and metrics
+      - Keep enough single line spaces between the end of each header section's content and the start of next header section.
+      - DO NOT word wrap text in tables or code blocks.
 
       QUALITY STANDARDS:
       - Every sentence must be complete and properly punctuated
@@ -87,17 +119,6 @@ export async function preparePerplexityApiPayload(content: string) {
       - Professional business language appropriate for C-suite executives
       - Consistent formatting using the specified semantic markers
       - No truncation or incomplete sections
-
-      PARSING INSTRUCTIONS:
-      - Use SECTION_HEADER: for main sections that need large headers
-      - Use CONTENT_BLOCK: for paragraph content under sections
-      - Use STRATEGY_BLOCK: for individual strategy names
-      - Use METRIC: for financial and timeline data
-      - Use STEPS_LIST: for numbered implementation steps
-      - Use TABLE_START/TABLE_END with TABLE_HEADER and TABLE_ROW for structured data
-      - Use FINANCIAL_METRIC: for summary financial data
-      - Use RISK_ITEM: and MITIGATION: for risk assessment content
-      - Use ACTION_ITEM: for next steps and immediate actions
 
     The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
       },
@@ -126,21 +147,38 @@ export function extractReportContent(rawResponse: string) {
 }
 
 import { PDFDocument, rgb, StandardFonts, PDFPage } from 'pdf-lib';
-import { measureText, calculateVerticalSpacing } from './pdfLayoutUtils';
+import { measureText, wrapText, calculateVerticalSpacing } from './pdfTextUtils';
 
 import { processMarkdownToPdfSections } from './markdownProcessor';
+import type { PdfSection, PdfSectionType } from './markdownProcessor';
+import { cleanTaxReport, validatePdfContent } from './pdfCleaner';
 
 export async function generateTaxPdf(content: string): Promise<Uint8Array> {
   try {
     console.debug('[PDF] Initializing document generation');
+    const cleanedContent = validatePdfContent(content);
     const pdfDoc = await PDFDocument.create();
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique);
     
-    // Process markdown into structured sections
-    console.debug('[PDF] Processing markdown content');
-    const sections = await processMarkdownToPdfSections(content);
+  // Process and validate markdown content
+  console.debug('[PDF] Processing markdown content');
+  let sections: PdfSection[];
+  try {
+    sections = await processMarkdownToPdfSections(cleanedContent);
+    // Additional validation
+    if (!sections || sections.length === 0) {
+      throw new Error('No valid content sections found');
+    }
+  } catch (error) {
+    console.error('Failed to process markdown:', error);
+    // Fallback content
+    sections = [{
+      type: 'paragraph',
+      content: 'Failed to generate report. Please try again.'
+    }];
+  }
     console.debug(`[PDF] Processed ${sections.length} sections`);
     
     // Validate sections
@@ -148,10 +186,17 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
       throw new Error('Invalid sections data from markdown processor');
     }
 
-    // Create pages with professional styling
-    let page = pdfDoc.addPage([595.28, 841.89]);
-    let yPosition = 780;
-    const currentPage = 1; // Tracked for future pagination features
+    // Create pages with consistent width and margins
+    const pageWidth = 842; // A4 width in points (1 point = 1/72 inch)
+    const pageHeight = 595.28;
+    const margin = 50;
+    
+    let page = pdfDoc.addPage([pageWidth, pageHeight]);
+    let yPosition = pageHeight - margin;
+    const currentPage = 1;
+    
+    // Set consistent content width
+    const contentWidth = pageWidth - (margin * 2);
     console.debug(`[PDF] Created initial page ${currentPage}`);
 
     // Report title
@@ -188,24 +233,21 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
             font: boldFont,
             color: rgb(0, 0, 0.5),
           });
-          yPosition -= calculateVerticalSpacing(10, headingDimensions.height, 'heading');
+          yPosition -= calculateVerticalSpacing(10, headingDimensions.height, 'heading' as PdfSectionType);
           break;
         }
 
         case 'paragraph': {
-          if (!section.content) {
-            console.warn('[PDF] Empty paragraph content, skipping');
-            break;
-          }
+          const content = section.content || '[Content not available]';
           const paragraphDimensions = measureText(
             page,
-            section.content,
+            content,
             font,
             12,
             500
           );
-          console.debug(`[PDF] Drawing paragraph: ${section.content.substring(0, 30)}...`);
-          page.drawText(section.content, {
+          console.debug(`[PDF] Drawing paragraph: ${content.substring(0, 30)}...`);
+          page.drawText(content, {
             x: 60,
             y: yPosition,
             size: 12,
@@ -213,46 +255,94 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
             color: rgb(0, 0, 0),
             maxWidth: 500,
           });
-            yPosition -= calculateVerticalSpacing(5, paragraphDimensions.height, 'paragraph');
+          yPosition -= calculateVerticalSpacing(5, paragraphDimensions.height, 'paragraph' as PdfSectionType);
           break;
         }
 
-        case 'table':
-          if (!section.rows || !Array.isArray(section.rows)) {
-            console.warn('[PDF] Invalid table data, skipping');
-            break;
+        case 'table': {
+          // Handle raw markdown tables
+          const tableContent = section.content || '';
+          const rows = tableContent.split('\n').filter(line => line.trim());
+          
+          if (rows.length < 2) {
+            console.warn('[PDF] Invalid table format, using fallback');
+            rows.push('| Column 1 | Column 2 |');
+            rows.push('|----------|----------|');
+            rows.push('| No data  | available|');
           }
-          console.debug(`[PDF] Drawing table with ${section.rows.length} rows`);
-          if (section.rows) {
-            // Draw table header
-            const header = section.rows[0];
-            header.forEach((cell, i) => {
-              page.drawText(cell, {
-                x: 50 + i * 120,
-                y: yPosition,
-                size: 12,
-                font: boldFont,
-                color: rgb(0, 0, 0.5),
+
+          console.debug(`[PDF] Drawing table with ${rows.length} rows`);
+          
+          // Calculate dynamic column widths
+          const firstRow = rows[0];
+          const columnCount = (firstRow.match(/\|/g) || []).length - 1;
+          
+          // Measure all cell content to determine max widths
+          // Calculate column widths based on longest content in each column
+          const colWidths = Array(columnCount).fill(0);
+          rows.forEach(row => {
+            const cells = row.split('|').slice(1, -1);
+            cells.forEach((cell, i) => {
+              const text = cell.trim();
+              const textWidth = measureText(page, text, font, 11, 1000).width;
+              colWidths[i] = Math.max(colWidths[i], textWidth + 20); // No max width limit
+            });
+          });
+          
+          // Ensure minimum column width for empty cells
+          colWidths.forEach((w, i) => {
+            if (w < 100) colWidths[i] = 100;
+          });
+          
+          // Distribute remaining space proportionally
+          const totalWidth = colWidths.reduce((sum, w) => sum + w, 0);
+          const remainingSpace = Math.max(0, 500 - totalWidth);
+          if (remainingSpace > 0) {
+            const scale = remainingSpace / totalWidth;
+            colWidths.forEach((w, i) => colWidths[i] = w * (1 + scale));
+          }
+          
+          // Draw each row with empty row spacing
+          rows.forEach((row, rowIndex) => {
+            const isHeader = rowIndex === 0 || row.includes('---');
+            const cells = row.split('|').slice(1, -1);
+            
+          // Draw content row - disable wrapping by setting maxWidth to column width
+          cells.forEach((cell, colIndex) => {
+            const text = cell.trim();
+            const textWidth = measureText(page, text, isHeader ? boldFont : font, isHeader ? 12 : 11, 1000).width;
+            
+            // Expand column if needed to fit content
+            colWidths[colIndex] = Math.max(colWidths[colIndex], textWidth + 20);
+            
+            page.drawText(text, {
+              x: 50 + colIndex * colWidths[colIndex],
+              y: yPosition - (rowIndex * 25),
+              size: isHeader ? 12 : 11,
+              font: isHeader ? boldFont : font,
+              color: isHeader ? rgb(0, 0, 0.5) : rgb(0, 0, 0),
+              maxWidth: colWidths[colIndex] // No longer subtracting padding
+            });
+          });
+
+          // Draw empty row below (except after last row)
+          if (rowIndex < rows.length - 1) {
+            cells.forEach((_, colIndex) => {
+              page.drawText('', {
+                x: 50 + colIndex * colWidths[colIndex],
+                y: yPosition - (rowIndex * 25) - 15, // Position empty row
+                size: 11,
+                font,
+                color: rgb(0, 0, 0),
+                maxWidth: colWidths[colIndex] - 10
               });
             });
-            yPosition -= 20;
-
-            // Draw table rows
-            for (const row of section.rows.slice(1)) {
-              row.forEach((cell, i) => {
-                page.drawText(cell, {
-                  x: 50 + i * 120,
-                  y: yPosition,
-                  size: 11,
-                  font,
-                  color: rgb(0, 0, 0),
-                });
-              });
-              yPosition -= 15;
-            }
-            yPosition -= 15; // Extra spacing after table
           }
+          });
+          
+          yPosition -= (rows.length * 25) + 15; // Adjusted for new row height
           break;
+        }
 
         case 'list':
           if (section.items) {
@@ -265,17 +355,21 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
                 color: rgb(0, 0, 0),
                 maxWidth: 500,
               });
-              yPosition -= 20;
+              yPosition -= calculateVerticalSpacing(5, 12, 'paragraph');
             });
           }
           break;
       }
 
       // Check if we need a new page before adding content
-      const requiredSpace = calculateVerticalSpacing(10, section.type === 'table' ? 100 : 50, section.type);
-      if (yPosition - requiredSpace < 50) { // Leave 50px margin at bottom
-        page = pdfDoc.addPage([595.28, 841.89]);
-        yPosition = 780; // Reset to top of new page
+      const requiredSpace = calculateVerticalSpacing(
+        10, 
+        section.type === 'table' ? 100 : 50,
+        (section.type === 'list' ? 'paragraph' : section.type) as PdfSectionType
+      );
+      if (yPosition - requiredSpace < margin) { // Leave margin at bottom
+        page = pdfDoc.addPage([pageWidth, pageHeight]);
+        yPosition = pageHeight - margin; // Reset to top of new page
         console.debug('[PDF] Added new page at section:', section.type);
       }
     }
@@ -298,6 +392,37 @@ export async function generateTaxPdf(content: string): Promise<Uint8Array> {
       stack: error.stack,
       timestamp: new Date().toISOString()
     });
-    throw error; // Let the renderer handle fallback
+    
+    // Create a minimal error PDF
+    const errorPdf = await PDFDocument.create();
+    const page = errorPdf.addPage([595.28, 841.89]);
+    const font = await errorPdf.embedFont(StandardFonts.Helvetica);
+    
+    page.drawText('Error Generating Report', {
+      x: 50,
+      y: 700,
+      size: 24,
+      font,
+      color: rgb(1, 0, 0),
+    });
+    
+    page.drawText(error.message.substring(0, 100), {
+      x: 50,
+      y: 650,
+      size: 12,
+      font,
+      color: rgb(0, 0, 0),
+    });
+    
+    page.drawText('Please try again or contact support', {
+      x: 50,
+      y: 600,
+      size: 12,
+      font,
+      color: rgb(0, 0, 0),
+    });
+
+    const errorPdfBytes = await errorPdf.save();
+    return new Uint8Array(errorPdfBytes);
   }
 }
