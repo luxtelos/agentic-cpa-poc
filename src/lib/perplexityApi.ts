@@ -85,7 +85,7 @@ export async function preparePerplexityApiPayload(content: string) {
               - Numeric values right-aligned
               - Text values left-aligned
 
-          5. **Key-Value Formatting Rules:**
+          2. **Key-Value Formatting Rules:**
             - Always include both key name AND value when using colons e.g. "Taxable Income: $718,789"
             - Never use standalone colons e.g. ": $718,789" is invalid
             - For definition lists, use: Key Term => Definition text
