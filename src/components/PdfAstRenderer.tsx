@@ -89,9 +89,9 @@ export const PdfAstRenderer = ({ markdown }: PdfAstRendererProps) => {
   return (
     <Document>
       <Page style={styles.page}>
-        {ast.children.map((node, index) => (
+        {ast.children?.map((node, index) => (
           <View key={index}>{renderNode(node)}</View>
-        ))}
+        )) || []}
       </Page>
     </Document>
   );
