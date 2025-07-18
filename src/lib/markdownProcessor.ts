@@ -41,37 +41,50 @@ interface RootNode extends Node {
   children: Node[]
 }
 
-interface PdfSection {
-  type: 'heading' | 'paragraph' | 'table' | 'list'
+export type PdfSectionType = 'heading' | 'paragraph' | 'table' | 'list' | 'section' | 'spacer';
+
+export interface PdfSection {
+  type: PdfSectionType
   content: string
   level?: number
   rows?: string[][]
   items?: string[]
+  raw?: boolean // Flag for raw markdown content
+  height?: number // Only for spacer type
 }
 
 export async function processMarkdownToPdfSections(rawContent: string): Promise<PdfSection[]> {
+  // Preserve original content for debugging
+  const originalContent = rawContent;
+  
   // Extract content after </think> tag if present
   const content = rawContent.includes('</think>') 
     ? rawContent.split('</think>')[1].trim()
     : rawContent;
 
-  // Convert custom syntax to markdown
+  // Debug log raw content
+  console.debug('[MarkdownProcessor] Raw content length:', content.length);
+
+  // Convert API response to markdown with strict table formatting
   const markdown = content
-    .replace(/SECTION_HEADER:\s*(.*?)\n/g, '## $1\n')
-    .replace(/CONTENT_BLOCK:\s*(.*?)\n/g, '$1\n\n')
-    .replace(/STRATEGY_BLOCK:\s*(.*?)\n/g, '### $1\n')
-    .replace(/METRIC:\s*(.*?)\n/g, '**$1**\n\n')
-    .replace(/STEPS_LIST:\n((\s*\d+\..*?\n)+)/g, (_, items) => 
-      items.split('\n').filter(Boolean).map(item => `- ${item.replace(/^\s*\d+\.\s*/, '')}`).join('\n') + '\n\n'
-    )
-    .replace(/TABLE_START\n([\s\S]*?)\nTABLE_END/g, (_, table) => {
+    // Handle sections
+    .replace(/## (.*?)\n/g, '## $1\n')
+    // Handle tables with strict formatting
+    .replace(/\|(.+?)\|/g, (match) => match.replace(/\s+/g, ' ').trim())
+    // Handle tables from TABULAR FORMAT blocks
+    .replace(/TABULAR FORMAT:\n([\s\S]*?)(?=\n\n|$)/g, (_, table) => {
       const rows = table.split('\n').filter(Boolean);
-      const parseRow = (row: string) => row.match(/(?:\\\||[^|])+/g)?.map(cell => cell.trim()) || [];
-      const headerCells = parseRow(rows[0]);
-      const header = `| ${headerCells.join(' | ')} |\n|${headerCells.map(() => '---').join('|')}|`;
+      const parseRow = (row: string) => row.split('|').map(cell => cell.trim());
+      const header = `| ${rows[0].split('|').join(' | ')} |\n|${rows[0].split('|').map(() => '---').join('|')}|`;
       const body = rows.slice(1).map(row => `| ${parseRow(row).join(' | ')} |`).join('\n');
       return `${header}\n${body}\n\n`;
-    });
+    })
+    // Handle lists from STEPS blocks
+    .replace(/STEPS:\n([\s\S]*?)(?=\n\n|$)/g, (_, items) => 
+      items.split('\n').filter(Boolean).map(item => `- ${item.trim()}`).join('\n') + '\n\n'
+    )
+    // Handle regular content
+    .replace(/\n\n/g, '\n');
 
   const processor = unified()
     .use(remarkParse)
@@ -80,16 +93,33 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
   const tree = processor.parse(markdown)
   const ast = await processor.run(tree)
   const sections: PdfSection[] = []
+  let previousWasParagraph = false
 
   // Process transformed AST nodes
   const processNode = (node: Node) => {
+    // Add spacing after paragraphs before headings
+    if (previousWasParagraph && node.type === 'heading') {
+      sections.push({
+        type: 'spacer',
+        content: '',
+        height: 1.5 // Line height multiplier
+      })
+    }
+    previousWasParagraph = node.type === 'paragraph'
     switch (node.type) {
       case 'heading': {
         const headingNode = node as HeadingNode
         if (headingNode.children?.[0]?.value) {
+          const content = headingNode.children[0].value;
+          const isKeySection = [
+            'EXECUTIVE SUMMARY',
+            'PEER BENCHMARKING RESULTS', 
+            'PRIORITIZED STRATEGIES'
+          ].some(s => content.toUpperCase().includes(s));
+          
           sections.push({
-            type: 'heading',
-            content: headingNode.children[0].value,
+            type: isKeySection ? 'section' : 'heading',
+            content: content,
             level: headingNode.depth
           })
         } else {
@@ -112,24 +142,79 @@ export async function processMarkdownToPdfSections(rawContent: string): Promise<
       }
       case 'table': {
         const tableNode = node as TableNode
-        const rows = tableNode.children.map(row => 
-          row.children.map(cell => cell.children[0].value)
-        )
-        sections.push({
-          type: 'table',
-          content: 'Table',
-          rows
-        })
+        try {
+          // Get the original markdown source lines for this table
+          const position = tableNode.position
+          if (position) {
+            const startLine = position.start.line
+            const endLine = position.end.line
+            const tableLines = markdown.split('\n').slice(startLine - 1, endLine)
+            const rawTable = tableLines.join('\n').trim()
+            
+            if (rawTable.includes('|')) {
+              sections.push({
+                type: 'table',
+                content: rawTable,
+                raw: true
+              })
+              break
+            }
+          }
+
+          // Fallback to structured table parsing if raw extraction fails
+          const headers: string[] = []
+          const rows: string[][] = []
+          
+          tableNode.children.forEach((row, rowIndex) => {
+            const rowData: string[] = []
+            row.children.forEach(cell => {
+              const value = cell.children[0]?.value || '-'
+              rowData.push(value.trim())
+              
+              if (rowIndex === 0) {
+                headers.push(value.trim())
+              }
+            })
+            
+            if (rowIndex > 0) {
+              rows.push(rowData)
+            }
+          })
+
+          // Convert to markdown table format
+          const headerRow = `| ${headers.join(' | ')} |`
+          const dividerRow = `| ${headers.map(() => '---').join(' | ')} |`
+          const bodyRows = rows.map(row => `| ${row.join(' | ')} |`).join('\n')
+          
+          sections.push({
+            type: 'table',
+            content: `${headerRow}\n${dividerRow}\n${bodyRows}`,
+            raw: true
+          })
+        } catch (error) {
+          console.error('Failed to process table:', error)
+          sections.push({
+            type: 'paragraph',
+            content: '[Table content could not be processed]'
+          })
+        }
         break
       }
       case 'list': {
         const listNode = node as ListNode
-        sections.push({
-          type: 'list',
-          content: 'List',
-          items: listNode.children.map(item => item.children[0].children[0].value)
-        })
-        break
+        const items = listNode.children
+          .map(item => item.children[0]?.children[0]?.value)
+          .filter(item => item && item !== 'undefined')
+          .map(item => item!.trim());
+
+        if (items.length > 0) {
+          sections.push({
+            type: 'list',
+            content: 'List',
+            items
+          });
+        }
+        break;
       }
     }
   }

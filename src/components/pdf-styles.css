@@ -1,0 +1,27 @@
+.pdf-generator {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.download-button {
+  padding: 0.5rem 1rem;
+  background-color: #1e40af;
+  color: white;
+  border-radius: 0.25rem;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.2s;
+  width: fit-content;
+}
+
+.download-button:hover {
+  background-color: #1e3a8a;
+}
+
+.pdf-viewer-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
