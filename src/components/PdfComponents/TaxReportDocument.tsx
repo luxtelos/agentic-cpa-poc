@@ -40,14 +40,24 @@ const styles = StyleSheet.create({
   summaryItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 5
+    marginBottom: 8,
+    paddingVertical: 4,
+    borderBottom: '1px solid #f3f4f6'
   },
   summaryLabel: {
     fontSize: 12,
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+    color: '#374151'
   },
   summaryValue: {
-    fontSize: 12
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1e40af'
+  },
+  financialItem: {
+    marginBottom: 12,
+    paddingLeft: 8,
+    borderLeft: '2px solid #1e40af'
   },
   paragraph: {
     fontSize: 12,
@@ -111,19 +121,19 @@ export const TaxReportDocument = ({ report }: { report: TaxReport }) => {
             <Text style={styles.summaryLabel}>Industry:</Text>
             <Text style={styles.summaryValue}>{report.executiveSummary.industry}</Text>
           </View>
-          <View style={styles.summaryItem}>
+          <View style={styles.financialItem}>
             <Text style={styles.summaryLabel}>Revenue:</Text>
             <Text style={styles.summaryValue}>
               {formatCurrency(report.executiveSummary.revenue)}
             </Text>
           </View>
-          <View style={styles.summaryItem}>
+          <View style={styles.financialItem}>
             <Text style={styles.summaryLabel}>Current Tax Rate:</Text>
             <Text style={styles.summaryValue}>
               {report.executiveSummary.currentTaxRate.toFixed(2)}%
             </Text>
           </View>
-          <View style={styles.summaryItem}>
+          <View style={styles.financialItem}>
             <Text style={styles.summaryLabel}>Projected Savings:</Text>
             <Text style={styles.summaryValue}>
               {formatCurrency(report.executiveSummary.projectedSavings)}
