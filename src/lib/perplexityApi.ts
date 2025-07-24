@@ -60,48 +60,14 @@ export async function preparePerplexityApiPayload(content: string) {
           Tax Expert Instructions:
           ${systemPrompt}
 
-      FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:
-      - Use standardized formatting for financial data and metrics
-      - Keep enough single line spaces between the end of each header section's content and the start of next header section.
-      - Every sentence must be complete and properly punctuated
-      - No truncation or incomplete sections
-
+      FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:  
+        - Keep enough single line spaces between the end of each header section's content and the start of next header section.
+        - Every sentence must be complete and properly punctuated
+        - No truncation or incomplete sections
   
       CRITICAL OUTPUT REQUIREMENTS:
-      You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
-      Produce Markdown compatible content that is PDF compatible (no JSON, no extra commentary). Follow these rules:
-          1. **Structure**
-            - Use #…###### for headings.
-            - Format tables using standard Markdown pipe syntax with consistent spacing.
-            - Tables must have:
-              - Clear headers in first row. No empty header cells
-              - Keep one row per line, no line breaks within cells
-              - Consistent column alignment
-              - Numeric values are right-aligned
-              - Text values are left-aligned
-
-          2. **Key-Value Formatting Rules:**
-            - Always include both key name AND value when using colons (e.g. "Taxable Income: $718,789")
-            - Never use standalone colons (": $718,789" is invalid)
-            - Required labels for strategy sections:
-              * "Estimated Savings: $X"
-              * "Implementation Timeline: TEXT" 
-              * "Complexity Level: Low/Medium/High"
-              * "Required Documentation: ITEMS"
-              * "Risk Level: TEXT"
-            - Remove duplicate content blocks
-            - Validate all section headers are properly titled
-
-          3. **Data Formatting**
-            - Dates as \\\`YYYY-MM-DD\\\`
-            - Currency as \\\`$XX,XXX\\\`
-            - Percentages as \\\`XX%\\\`
-            - Empty cells as \\\`-\\\`
-
-          4. **Compatibility**
-            - Ensure all elements are supported by **react-markdown** (with \\\`remark-gfm\\\`) and map cleanly to PDF components in **@react-pdf/renderer** or **react-to-pdf**.
-
-    The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
+        - You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
+        - The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
       },
       { role: "user", content: content }
     ],
