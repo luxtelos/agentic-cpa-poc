@@ -1,30 +1,20 @@
-import React, { useState, useMemo } from 'react';
-import type { TaxReport } from '../lib/pdfTypes';
-import { cleanTaxReportData } from '../lib/pdfUtils';
-import { TaxReportDocument } from '../components/PdfComponents/TaxReportDocument';
+import { PdfService } from '../services/pdfService';
+import { toast } from '../components/ui/use-toast';
 
-interface PdfGeneratorHook {
-  generate: (data: unknown) => TaxReport;
-  document: JSX.Element | null;
-  reportData: TaxReport | null;
-}
-
-export const usePdfGenerator = (): PdfGeneratorHook => {
-  const [reportData, setReportData] = useState<TaxReport | null>(null);
-
-  const generate = (data: unknown): TaxReport => {
-    const cleanedData = cleanTaxReportData(data);
-    setReportData(cleanedData);
-    return cleanedData;
+export const usePdfGenerator = () => {
+  const generatePdf = async (content: string) => {
+    try {
+      const blob = await PdfService.fetchPdf(content);
+      return PdfService.createViewerUrl(blob);
+    } catch (error) {
+      toast({
+        title: 'PDF Generation Failed',
+        description: error instanceof Error ? error.message : 'Failed to generate PDF',
+        variant: 'destructive'
+      });
+      throw error;
+    }
   };
 
-  const document = useMemo(() => {
-    return reportData ? React.createElement(TaxReportDocument, { report: reportData }) : null;
-  }, [reportData]);
-
-  return {
-    generate,
-    document,
-    reportData
-  };
+  return { generatePdf };
 };

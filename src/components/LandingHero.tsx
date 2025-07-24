@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Calculator, Loader2 } from 'lucide-react';
-import { PdfViewer } from './PdfViewer';
+import { PdfHandler } from '@/components/PdfHandler';
 import { useAppContext } from '@/contexts/AppContext';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   preparePerplexityApiPayload,
   getChatCompletion,
-  extractReportContent,
-  generateTaxPdf
+  extractReportContent
 } from '@/lib/perplexityApi';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
@@ -99,7 +98,6 @@ const LandingHero: React.FC = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportContent, setReportContent] = useState('');
-  const [pdfData, setPdfData] = useState<Uint8Array>(new Uint8Array(0));
 
   const sendToPerplexity = async () => {
     if (!pdfText) {
@@ -122,15 +120,7 @@ const LandingHero: React.FC = () => {
       
       const rawContent = response.choices[0].message.content;
       const report = extractReportContent(rawContent);
-      
       setReportContent(report);
-      const pdfBytes = await generateTaxPdf(report);
-      setPdfData(pdfBytes);
-      console.log('[DEBUG] Report - Generated content:', {
-        rawLength: rawContent.length,
-        reportLength: report.length,
-        timestamp: new Date().toISOString()
-      });
       
       toast({
         title: 'Report Generated',
@@ -242,11 +232,11 @@ const LandingHero: React.FC = () => {
           </div>
 
           {/* PDF Report */}
-          {pdfData.length > 0 && (
+          {reportContent && (
             <div className="mt-8 w-full max-w-3xl mx-auto mb-16">
-              <PdfViewer 
-                pdfData={pdfData}
-                className="min-h-[600px] max-h-[80vh]"
+              <PdfHandler 
+                content={reportContent}
+                defaultAction="view"
               />
             </div>
           )}
