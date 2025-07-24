@@ -16,9 +16,15 @@ interface ProcessingState {
   deadlines: TaxStrategyData['deadlines']
 }
 
+const DEFAULT_IMPLEMENTATION_COMPLEXITY = 3;
+
 export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
   try {
+    // First clean the markdown to remove any non-content blocks
     const cleanedMarkdown = cleanMarkdown(markdown)
+      .replace(/<think>[\s\S]*?<\/think>/g, '') // Remove think blocks
+      .replace(/^#+\s*Executive Summary[^#]*/i, '') // Remove executive summary section
+    
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm)
@@ -33,36 +39,30 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
       throw new Error('Failed to process markdown - no state generated')
     }
 
-    // Create minimal valid structure even if parsing fails
-    const result = {
+    return validateTaxStrategyData({
       summary: {
         companyName: state.summary.companyName || 'Unknown Company',
         effectiveTaxRate: state.summary.effectiveTaxRate || 0,
         industryBenchmark: state.summary.industryBenchmark || 0,
         potentialSavings: state.summary.potentialSavings || 0,
-        implementationComplexity: state.summary.implementationComplexity || 3
+        implementationComplexity: state.summary.implementationComplexity || DEFAULT_IMPLEMENTATION_COMPLEXITY
       },
       strategies: state.strategies || [],
       roadmap: state.roadmap || [],
       deadlines: state.deadlines || []
-    }
-
-    // Validate against schema
-    return validateTaxStrategyData(result)
+    })
   } catch (error) {
     if (error instanceof Error && error.message.includes('Invalid tax strategy data')) {
-      // Rethrow validation errors with markdown context
       throw new Error(`Markdown parsing validation failed: ${error.message}`)
     }
     
-    // Fallback to minimal valid structure
     return {
       summary: {
         companyName: 'Unknown Company',
         effectiveTaxRate: 0,
         industryBenchmark: 0,
         potentialSavings: 0,
-        implementationComplexity: DEFAULT_IMPLEMENTATION_COMPLEXITY // Default to medium complexity
+        implementationComplexity: DEFAULT_IMPLEMENTATION_COMPLEXITY
       },
       strategies: [],
       roadmap: [],
@@ -73,20 +73,21 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
 
 function remarkTaxStrategy() {
   return (tree: Root, file: VFile) => {
-    const getText = (n: any): string => {
+    const getText = (node: { type: string; children?: Array<{type: string, value?: string}> }): string => {
       let value = ''
-      visit(n, (child) => {
-        if (child.type === 'text') value += child.value
+      visit(node, (child: {type: string, value?: string}) => {
+        if (child.type === 'text' && child.value) value += child.value
       })
       return value
     }
+
     const state: ProcessingState = {
       summary: { 
         companyName: 'Unknown Company',
         effectiveTaxRate: 0,
         industryBenchmark: 0,
         potentialSavings: 0,
-        implementationComplexity: 3
+        implementationComplexity: DEFAULT_IMPLEMENTATION_COMPLEXITY
       },
       strategies: [],
       roadmap: [],
@@ -96,8 +97,6 @@ function remarkTaxStrategy() {
     file.data = file.data || {}
     file.data.state = state
 
-    let currentText = ''
-
     visit(tree, (node, index, parent) => {
       if (node.type === 'heading') {
         const heading = node as Heading
@@ -105,62 +104,50 @@ function remarkTaxStrategy() {
           .filter(child => child.type === 'text')
           .map(child => child.value)
           .join('')
-        
         state.currentSection = text.toLowerCase()
-        currentText = ''
       }
       else if (node.type === 'text') {
-        currentText += node.value + '\n'
-        
-        // Parse summary details
+        const text = node.value
         if (state.currentSection?.includes('summary')) {
-          // Match company name from various formats in summary section
-          if (state.currentSection?.toLowerCase().includes('summary')) {
-            const companyMatch = currentText.match(/(?:Company|Legal Name):\s*\**([^\n]*)/i)
-            if (companyMatch) {
-              state.summary.companyName = companyMatch[1].replace(/\*/g, '').trim()
+          // Handle company name in exact sample format
+          const companyMatch = text.match(/\*\*Legal Name\*\*:\s*([^\n]+)/i)
+          if (companyMatch) {
+            state.summary.companyName = companyMatch[1].trim()
+          }
+          // Fallback to other formats if needed
+          else {
+            const fallbackMatch = text.match(/(?:Company|Legal Name):\s*([^\n]+)/i)
+            if (fallbackMatch) {
+              state.summary.companyName = fallbackMatch[1].trim()
             }
           }
-          
-          const rateMatch = currentText.match(/effective tax rate:\s*([\d.]+)%/i)
+
+          // Parse other summary fields
+          const rateMatch = text.match(/effective tax rate:\s*([\d.]+)%/i)
           if (rateMatch) state.summary.effectiveTaxRate = parseFloat(rateMatch[1])
           
-          const savingsMatch = currentText.match(/potential savings:\s*\$\s*([\d,]+)/i)
+          const savingsMatch = text.match(/potential savings:\s*\$\s*([\d,]+)/i)
           if (savingsMatch) {
             state.summary.potentialSavings = parseFloat(savingsMatch[1].replace(/,/g, ''))
-          }
-
-          // Parse implementation complexity (1-5 scale)
-          const complexityMatch = currentText.match(
-            /implementation complexity:\s*([1-5]|low|medium|high)/i
-          )
-          if (complexityMatch) {
-            const value = complexityMatch[1].toLowerCase()
-            state.summary.implementationComplexity = 
-              value === 'low' ? 1 :
-              value === 'medium' ? 3 :
-              value === 'high' ? 5 :
-              parseInt(value)
-          } else {
-            // Default to medium complexity (3) if not specified
-            state.summary.implementationComplexity = 3
           }
         }
       }
       else if (node.type === 'list') {
         const list = node as List
-        if (state.currentSection?.toLowerCase().includes('deadlines') && parent?.type !== 'listItem') {
+        if (state.currentSection?.toLowerCase().includes('deadlines')) {
           list.children.forEach(item => {
-            const header = item.children.find(c => c.type === 'paragraph')
-            const monthText = header ? getText(header) : ''
+            const monthText = getText(item)
             const monthMatch = monthText.match(/\*\*(.*?)\*\*/)
-            
             if (monthMatch) {
               const requirements = item.children
                 .filter(child => child.type === 'list')
                 .flatMap(sublist => sublist.children)
-                .map(li => getText(li).replace(/^-/, '').trim())
-                .filter(r => r)
+                .flatMap(li => {
+                  const text = getText(li);
+                  return text.split('\n')
+                    .map(s => s.replace(/^-/, '').trim())
+                    .filter(Boolean);
+                });
               
               state.deadlines.push({
                 month: monthMatch[1],
@@ -169,59 +156,34 @@ function remarkTaxStrategy() {
             }
           })
         }
-        else if (state.currentSection?.toLowerCase().includes('strategies') && parent?.type !== 'listItem') {
+        else if (state.currentSection?.toLowerCase().includes('strategies')) {
           list.children.forEach(item => {
-            const header = item.children.find(c => c.type === 'paragraph')
-            const headerText = header ? getText(header) : ''
-
-            const nameMatch = headerText.match(/\*\*(.*?)\*\*/)
-            const savingsMatch = headerText.match(/save\s*\$?\s*([\d,]+)/i)
-            const complexityMatch = headerText.match(/complexity:\s*(\w+)/i)
-            const timelineMatch = headerText.match(/timeline:\s*([\w\s]+)/i)
-            const deadlineMatch = headerText.match(/deadline:\s*([\w\s,]+)/i)
-            const riskMatch = headerText.match(/risk:\s*(\w+)/i)
-            const complianceMatch = headerText.match(/compliance:\s*(\w+)/i)
-
-            const steps = item.children
-              .filter(child => child.type === 'list')
-              .flatMap(sub => (sub as List).children)
-              .map(li => getText(li).trim())
-              .filter(Boolean)
-
+            const headerText = getText(item)
+            // Match both bolded strategy names and section headers
+            const nameMatch = headerText.match(/\*\*(.*?)\*\*:?\s*-\s*(.*)/) || 
+                           headerText.match(/^#+\s*(.*?)\n/) ||
+                           headerText.match(/\d+\.\s*(.*)/)
+            
             if (nameMatch) {
+              const strategyName = nameMatch[1] || nameMatch[2]
+              const strategyDesc = nameMatch[2] ? nameMatch[2].trim() : ''
+              
               state.strategies.push({
-                name: nameMatch[1],
-                savings: savingsMatch ? parseFloat(savingsMatch[1].replace(/,/g, '')) : 0,
-                timeline: timelineMatch?.[1] || '6 months',
-                complexity: complexityMatch?.[1] || 'Medium',
-                steps,
+                name: strategyName,
+                savings: headerText.match(/save\s*\$?\s*([\d,]+)/i)?.[1] ? 
+                  parseFloat(headerText.match(/save\s*\$?\s*([\d,]+)/i)[1].replace(/,/g, '')) : 0,
+                timeline: headerText.match(/timeline:\s*([\w\s]+)/i)?.[1] || '6 months',
+                complexity: headerText.match(/complexity:\s*(\w+)/i)?.[1] || 'Medium',
+                steps: item.children
+                  .filter(child => child.type === 'list')
+                  .flatMap(sub => (sub as List).children)
+                  .map(li => getText(li).trim())
+                  .filter(Boolean),
                 documentation: [],
-                deadline: deadlineMatch?.[1] || '',
-                risk: riskMatch?.[1] || 'Medium',
-                compliance: complianceMatch?.[1] || 'Required'
+                deadline: headerText.match(/deadline:\s*([\w\s,]+)/i)?.[1] || '',
+                risk: headerText.match(/risk:\s*(\w+)/i)?.[1] || 'Medium',
+                compliance: headerText.match(/compliance:\s*(\w+)/i)?.[1] || 'Required'
               })
-            }
-          })
-        }
-        else if (state.currentSection?.toLowerCase().includes('roadmap') && parent?.type !== 'listItem') {
-          list.children.forEach(item => {
-            const header = item.children.find(c => c.type === 'paragraph')
-            const quarter = header ? getText(header).replace(/:$/, '').trim() : ''
-            const entry = state.roadmap.find(r => r.quarter === quarter) || { quarter, actions: [], deadlines: [] }
-            item.children
-              .filter(child => child.type === 'list')
-              .flatMap(sub => (sub as List).children)
-              .forEach(li => {
-                const t = getText(li)
-                const d = t.match(/^deadline:\s*(.*)/i)
-                if (d) {
-                  if (d[1]) entry.deadlines.push(d[1].trim())
-                } else if (t) {
-                  entry.actions.push(t)
-                }
-              })
-            if (!state.roadmap.find(r => r.quarter === quarter) && quarter) {
-              state.roadmap.push(entry)
             }
           })
         }
@@ -230,8 +192,7 @@ function remarkTaxStrategy() {
         const table = node as Table
         const rows = table.children.map(row => 
           row.children.map(cell => {
-            // Handle both text and line breaks in cells
-            const parts = []
+            const parts: string[] = []
             visit(cell, (child) => {
               if (child.type === 'text') parts.push(child.value)
               if (child.type === 'break') parts.push('\n')
@@ -240,64 +201,26 @@ function remarkTaxStrategy() {
           })
         )
         
-        // Ensure we have at least a header row
         if (rows.length === 0) return
         
         const headers = rows[0].map(h => h.toLowerCase())
         const dataRows = rows.slice(1)
         
-        // Handle roadmap table
-        if (state.currentSection?.includes('roadmap')) {
-          dataRows.forEach(row => {
-            const quarterIdx = headers.findIndex(h => h.includes('quarter'))
-            const actionIdx = headers.findIndex(h => h.includes('action'))
-            const deadlineIdx = headers.findIndex(h => h.includes('deadline'))
-            
-            if (quarterIdx >= 0 && actionIdx >= 0) {
-              const quarter = row[quarterIdx] || ''
-              const action = row[actionIdx] || ''
-              const deadline = deadlineIdx >= 0 ? row[deadlineIdx] : ''
-              
-              if (quarter && action) {
-                if (!state.roadmap) state.roadmap = []
-                
-                const existing = state.roadmap.find(r => r.quarter === quarter)
-                if (existing) {
-                  if (!existing.actions) existing.actions = []
-                  if (!existing.deadlines) existing.deadlines = []
-                  existing.actions.push(action)
-                  if (deadline) existing.deadlines.push(deadline)
-                } else {
-                  state.roadmap.push({
-                    quarter,
-                    actions: [action],
-                    deadlines: deadline ? [deadline] : []
-                  })
-                }
-              }
-            }
-          })
-        }
-        // Handle deadlines table
-        else if (state.currentSection?.includes('deadlines')) {
+        if (state.currentSection?.includes('deadlines')) {
           const monthIdx = headers.findIndex(h => h.includes('month'))
-          const reqIdx = headers.findIndex(h => h.includes('requirement') || h.includes('requirements'))
+          const reqIdx = headers.findIndex(h => h.includes('requirement'))
           
           if (monthIdx >= 0 && reqIdx >= 0) {
             dataRows.forEach(row => {
-              const month = row[monthIdx] || ''
-              const requirements = row[reqIdx]?.split('\n').filter(r => r.trim()) || []
-              
-              if (month && requirements.length) {
-                state.deadlines.push({
-                  month,
-                  requirements
-                })
+              const month = row[monthIdx]
+              const requirements = row[reqIdx]?.split('\n').filter(Boolean)
+              if (month && requirements?.length) {
+                state.deadlines.push({ month, requirements })
               }
             })
           }
         }
-    }
+      }
     })
   }
 }
