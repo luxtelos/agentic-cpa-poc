@@ -60,7 +60,7 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
         effectiveTaxRate: 0,
         industryBenchmark: 0,
         potentialSavings: 0,
-        implementationComplexity: 3 // Default to medium complexity
+        implementationComplexity: DEFAULT_IMPLEMENTATION_COMPLEXITY // Default to medium complexity
       },
       strategies: [],
       roadmap: [],
