@@ -60,11 +60,6 @@ export async function preparePerplexityApiPayload(content: string) {
           Tax Expert Instructions:
           ${systemPrompt}
 
-      FORMATTING REQUIREMENTS FOR REACT-PDF PARSING:  
-        - Keep enough single line spaces between the end of each header section's content and the start of next header section.
-        - Every sentence must be complete and properly punctuated
-        - No truncation or incomplete sections
-  
       CRITICAL OUTPUT REQUIREMENTS:
         - You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
         - The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
