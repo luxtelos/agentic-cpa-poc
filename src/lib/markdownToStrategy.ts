@@ -169,33 +169,30 @@ function remarkTaxStrategy() {
         }
         else if (state.currentSection?.toLowerCase().includes('strategies') && parent?.type !== 'listItem') {
           list.children.forEach(item => {
-            const text = item.children
-              .filter(child => child.type === 'paragraph')
-              .flatMap(p => p.children)
-              .filter(child => child.type === 'text')
-              .map(child => child.value)
-              .join('')
-            
-            const nameMatch = text.match(/\*\*(.*?)\*\*/)
-            const savingsMatch = text.match(/save\s*\$\s*([\d,]+)/i)
-            const complexityMatch = text.match(/\(complexity:\s*(\w+)\)/i)
-            
+            const header = item.children.find(c => c.type === 'paragraph')
+            const headerText = header ? getText(header) : ''
+
+            const nameMatch = headerText.match(/\*\*(.*?)\*\*/)
+            const savingsMatch = headerText.match(/save\s*\$?\s*([\d,]+)/i)
+            const complexityMatch = headerText.match(/complexity:\s*(\w+)/i)
+            const timelineMatch = headerText.match(/timeline:\s*([\w\s]+)/i)
+            const deadlineMatch = headerText.match(/deadline:\s*([\w\s,]+)/i)
+            const riskMatch = headerText.match(/risk:\s*(\w+)/i)
+            const complianceMatch = headerText.match(/compliance:\s*(\w+)/i)
+
+            const steps = item.children
+              .filter(child => child.type === 'list')
+              .flatMap(sub => (sub as List).children)
+              .map(li => getText(li).trim())
+              .filter(Boolean)
+
             if (nameMatch) {
-              const steps = text.split('\n')
-                .filter(line => line.trim().startsWith('-'))
-                .map(line => line.replace(/^-/, '').trim())
-              
-              const timelineMatch = text.match(/timeline:\s*(\w+)/i)
-              const deadlineMatch = text.match(/deadline:\s*([\w\s,]+)/i)
-              const riskMatch = text.match(/risk:\s*(\w+)/i)
-              const complianceMatch = text.match(/compliance:\s*(\w+)/i)
-              
               state.strategies.push({
                 name: nameMatch[1],
                 savings: savingsMatch ? parseFloat(savingsMatch[1].replace(/,/g, '')) : 0,
                 timeline: timelineMatch?.[1] || '6 months',
                 complexity: complexityMatch?.[1] || 'Medium',
-                steps: steps,
+                steps,
                 documentation: [],
                 deadline: deadlineMatch?.[1] || '',
                 risk: riskMatch?.[1] || 'Medium',
