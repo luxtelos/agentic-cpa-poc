@@ -64,14 +64,14 @@ const ExecutiveSummary = ({ data }: { data: TaxStrategyData['summary'] }) => (
 const StrategyList = ({ items }: { items: TaxStrategyData['strategies'] }) => (
   <View style={styles.section}>
     <Text style={styles.header}>Prioritized Strategies</Text>
-    {items.map((strategy, index) => (
-      <View key={index} style={[styles.section, { marginLeft: 10 }]}>
-        <Text style={styles.subheader}>Strategy #{index + 1}: {strategy.name}</Text>
+    {items.map((strategy) => (
+      <View key={strategy.name} style={[styles.section, { marginLeft: 10 }]}>
+        <Text style={styles.subheader}>Strategy: {strategy.name}</Text>
         <Text style={styles.text}>- Savings: ${strategy.savings.toLocaleString()}</Text>
         <Text style={styles.text}>- Timeline: {strategy.timeline}</Text>
         <Text style={styles.text}>- Steps:</Text>
-        {strategy.steps.map((step, i) => (
-          <Text key={i} style={[styles.text, { marginLeft: 10 }]}>• {step}</Text>
+        {strategy.steps.map((step) => (
+          <Text key={`${strategy.name}-${step}`} style={[styles.text, { marginLeft: 10 }]}>• {step}</Text>
         ))}
       </View>
     ))}
@@ -81,12 +81,12 @@ const StrategyList = ({ items }: { items: TaxStrategyData['strategies'] }) => (
 const ImplementationRoadmap = ({ milestones }: { milestones: TaxStrategyData['roadmap'] }) => (
   <View style={styles.section}>
     <Text style={styles.header}>Implementation Roadmap</Text>
-    {milestones.map((milestone, index) => (
-      <View key={index} style={[styles.section, { marginLeft: 10 }]}>
+    {milestones.map((milestone) => (
+      <View key={milestone.quarter} style={[styles.section, { marginLeft: 10 }]}>
         <Text style={styles.subheader}>{milestone.quarter}</Text>
         <View style={styles.table}>
           {milestone.actions.map((action, i) => (
-            <View key={i} style={styles.tableRow}>
+            <View key={`${milestone.quarter}-${action}`} style={styles.tableRow}>
               <Text style={[styles.tableCell, styles.text]}>{action}</Text>
               <Text style={[styles.tableCell, styles.text]}>{milestone.deadlines[i]}</Text>
             </View>
@@ -105,8 +105,8 @@ const ComplianceCalendar = ({ deadlines }: { deadlines: TaxStrategyData['deadlin
         <Text style={styles.tableCell}>Month</Text>
         <Text style={styles.tableCell}>Requirements</Text>
       </View>
-      {deadlines.map((item, index) => (
-        <View key={index} style={styles.tableRow}>
+      {deadlines.map((item) => (
+        <View key={item.month} style={styles.tableRow}>
           <Text style={[styles.tableCell, styles.text]}>{item.month}</Text>
           <Text style={[styles.tableCell, styles.text]}>{item.requirements.join(', ')}</Text>
         </View>

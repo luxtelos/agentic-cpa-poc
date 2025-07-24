@@ -57,8 +57,8 @@ export const StrategyCard = ({ strategy }: { strategy: Strategy }) => (
     <Text style={styles.timeline}>
       Timeline: {strategy.timeline} • Complexity: {strategy.complexity}/10
     </Text>
-    {strategy.steps.map((step, i) => (
-      <View key={i} style={styles.step}>
+    {strategy.steps.map((step) => (
+      <View key={`${strategy.title}-${step}`} style={styles.step}>
         <View style={styles.stepBullet} />
         <Text>{step}</Text>
       </View>

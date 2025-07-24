@@ -147,8 +147,8 @@ export const TaxMinimizationStrategyDocument = ({ report }: { report: TaxStrateg
             <Text style={styles.tableCell}>Estimated Savings</Text>
             <Text style={styles.tableCell}>Timeline</Text>
           </View>
-          {report.strategies.map((strategy, idx) => (
-            <View style={styles.tableRow} key={idx}>
+          {report.strategies.map((strategy) => (
+            <View style={styles.tableRow} key={strategy.name}>
               <Text style={[styles.tableCell, {flex: 3}]}>{strategy.name}</Text>
               <Text style={styles.tableCell}>${strategy.savings.toLocaleString()}</Text>
               <Text style={styles.tableCell}>{strategy.timeline}</Text>
@@ -161,11 +161,11 @@ export const TaxMinimizationStrategyDocument = ({ report }: { report: TaxStrateg
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>IMPLEMENTATION ROADMAP</Text>
         <View style={styles.timelineContainer}>
-          {report.roadmap.map((item, idx) => (
-            <View style={styles.timelineItem} key={idx}>
+          {report.roadmap.map((item) => (
+            <View style={styles.timelineItem} key={item.quarter}>
               <Text style={styles.timelineDate}>{item.quarter}</Text>
-              {item.actions.map((action, i) => (
-                <Text key={i} style={styles.paragraph}>• {action}</Text>
+              {item.actions.map((action) => (
+                <Text key={`${item.quarter}-${action}`} style={styles.paragraph}>• {action}</Text>
               ))}
             </View>
           ))}
@@ -175,8 +175,8 @@ export const TaxMinimizationStrategyDocument = ({ report }: { report: TaxStrateg
       {/* Compliance Calendar */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>COMPLIANCE CALENDAR</Text>
-        {report.deadlines.map((deadline, idx) => (
-          <View key={idx} style={styles.paragraph}>
+        {report.deadlines.map((deadline) => (
+          <View key={deadline.month} style={styles.paragraph}>
             <Text style={{fontWeight: 'bold'}}>{deadline.month}:</Text>
             <Text> {deadline.requirements.join(', ')}</Text>
           </View>
