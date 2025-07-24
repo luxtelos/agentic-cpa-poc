@@ -6,6 +6,7 @@ import type { Root, Heading, Table, List } from 'mdast'
 import { VFile } from 'vfile'
 import { TaxStrategyData } from './taxReportTypes'
 import { validateTaxStrategyData } from './taxReportSchema'
+import { cleanMarkdown } from './cleanMarkdown'
 
 interface ProcessingState {
   currentSection?: string
@@ -17,12 +18,13 @@ interface ProcessingState {
 
 export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
   try {
+    const cleanedMarkdown = cleanMarkdown(markdown)
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm)
       .use(remarkTaxStrategy)
 
-    const vfile = new VFile({ value: markdown })
+    const vfile = new VFile({ value: cleanedMarkdown })
     const tree = processor.parse(vfile)
     processor.runSync(tree, vfile)
     const state = vfile.data?.state as ProcessingState | undefined
