@@ -18,12 +18,20 @@ export const generatePdfDocument = (strategyData: TaxStrategyData): React.ReactE
   
   return React.createElement(
     TaxStrategyDocument,
-    { children: [
-      React.createElement(ExecutiveSummary, { data: summary }),
-      React.createElement(StrategyList, { items: strategies }),
-      React.createElement(ImplementationRoadmap, { milestones: roadmap }),
-      React.createElement(ComplianceCalendar, { deadlines })
-    ]}
+    {
+      children: [
+        React.createElement(ExecutiveSummary, { data: summary, key: 'summary' }),
+        React.createElement(StrategyList, {
+          items: strategies,
+          key: 'strategies'
+        }),
+        React.createElement(ImplementationRoadmap, {
+          milestones: roadmap,
+          key: 'roadmap'
+        }),
+        React.createElement(ComplianceCalendar, { deadlines, key: 'calendar' })
+      ]
+    }
   );
 };
 
