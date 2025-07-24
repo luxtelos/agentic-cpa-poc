@@ -39,7 +39,7 @@ export const PdfHandler = ({
     } catch (error) {
       toast({
         title: 'PDF Generation Failed',
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Failed to generate PDF',
         variant: 'destructive'
       });
     } finally {
