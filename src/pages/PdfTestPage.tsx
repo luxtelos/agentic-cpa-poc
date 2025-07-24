@@ -1,4 +1,4 @@
-import { PdfGenerator } from '../components/PdfGenerator';
+import { PdfHandler } from '../components/PdfHandler';
 
 const testMarkdown = `
 # Tax Optimization Report
@@ -28,9 +28,9 @@ export const PdfTestPage = () => {
     <div className="p-8 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">PDF Generation Test</h1>
       <div className="mb-4 p-4 border rounded">
-<PdfGenerator 
-  data={testMarkdown}
-  showPreview={true}
+<PdfHandler
+  content={testMarkdown}
+  defaultAction="view"
 />
       </div>
       <div className="text-sm text-gray-500 mt-2">

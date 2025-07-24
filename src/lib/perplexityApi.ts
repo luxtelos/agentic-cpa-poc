@@ -62,7 +62,7 @@ export async function preparePerplexityApiPayload(content: string) {
 
       CRITICAL OUTPUT REQUIREMENTS:
         - You are generating a report that will be parsed by React-PDF components and rendered as a professional PDF.
-        - The final output must be a complete, structured text document that React-PDF components can parse into a professional tax advisory report with proper styling, tables, and visual hierarchy suitable for C-suite presentation.`
+        - The final output must be a complete, structured text document that React-PDF components can parse.`
       },
       { role: "user", content: content }
     ],
