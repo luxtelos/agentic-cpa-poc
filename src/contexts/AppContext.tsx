@@ -1,32 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/components/ui/use-toast';
-import { generateTaxPdf } from '@/lib/perplexityApi';
+import { extractTextFromPdf } from '@/lib/pdfUtils';
+import { getChatCompletion, generateTaxPdf } from '@/lib/perplexityApi';
+const DEFAULT_PROMPT = `Generate a comprehensive tax optimization report with:
+1. Executive summary
+2. Current tax position analysis
+3. Recommended strategies
+4. Implementation roadmap
+5. Risk assessment`;
 
 interface TaxData {
   id: string;
   fileName: string;
   uploadDate: Date;
-  totalIncome: number;
-  currentTax: number;
-  potentialSavings: number;
-  optimizationScore: number;
   pdfReport: Uint8Array;
-  deductions: {
-    id: string;
-    category: string;
-    amount: number;
-    description: string;
-    status: 'claimed' | 'missed' | 'potential';
-  }[];
-  recommendations: {
-    id: string;
-    title: string;
-    description: string;
-    potentialSaving: number;
-    priority: 'high' | 'medium' | 'low';
-    implemented: boolean;
-  }[];
+  pdfUrl: string;
+  recommendations: string;
 }
 
 interface AppContextType {
@@ -61,78 +51,43 @@ const AppProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   };
 
   const uploadTaxFile = async (file: File) => {
+    setShowDashboard(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const pdfReport = new Uint8Array(0);
-      if (!pdfReport || pdfReport.length === 0) {
-        throw new Error('Failed to generate PDF report');
-      }
+      // 1. Extract text from PDF
+      const text = await extractTextFromPdf(file);
+      
+      // 2. Get AI recommendations
+      const response = await getChatCompletion(
+        `${localStorage.getItem('customPrompt') || DEFAULT_PROMPT}\n\n${text}`
+      );
+      const markdown = response.choices[0].message.content;
 
-      const mockTaxData: TaxData = {
+      // 3. Generate PDF report
+      const pdfBytes = await generateTaxPdf(markdown);
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const pdfUrl = URL.createObjectURL(blob);
+
+      // 4. Update state with real data
+      setTaxData({
         id: uuidv4(),
         fileName: file.name,
         uploadDate: new Date(),
-        totalIncome: 850000,
-        currentTax: 178500,
-        potentialSavings: 23400,
-        optimizationScore: 78,
-        pdfReport,
-        deductions: [
-          {
-            id: uuidv4(),
-            category: 'Business Equipment',
-            amount: 15000,
-            description: 'Office computers and software',
-            status: 'claimed'
-          },
-          {
-            id: uuidv4(),
-            category: 'Professional Services',
-            amount: 8500,
-            description: 'Legal and consulting fees',
-            status: 'missed'
-          },
-          {
-            id: uuidv4(),
-            category: 'Research & Development',
-            amount: 25000,
-            description: 'R&D tax credit opportunity',
-            status: 'potential'
-          }
-        ],
-        recommendations: [
-          {
-            id: uuidv4(),
-            title: 'Maximize R&D Tax Credits',
-            description: 'Claim additional R&D credits for software development',
-            potentialSaving: 12000,
-            priority: 'high',
-            implemented: false
-          },
-          {
-            id: uuidv4(),
-            title: 'Optimize Depreciation Schedule',
-            description: 'Switch to accelerated depreciation for equipment',
-            potentialSaving: 8400,
-            priority: 'medium',
-            implemented: false
-          }
-        ]
-      };
-      
-      setTaxData(mockTaxData);
-      setShowDashboard(true);
-      
+        pdfReport: pdfBytes,
+        pdfUrl,
+        recommendations: markdown,
+      });
+
       toast({
-        title: 'File processed successfully',
-        description: `Analysis complete for ${file.name}`,
+        title: 'Analysis complete',
+        description: `Tax optimization report generated for ${file.name}`,
       });
     } catch (error) {
       toast({
-        title: 'Upload failed',
-        description: 'Please try again with a valid tax file',
+        title: 'Processing failed',
+        description: error instanceof Error ? error.message : 'Failed to generate report',
         variant: 'destructive',
       });
+      setTaxData(null);
     }
   };
 

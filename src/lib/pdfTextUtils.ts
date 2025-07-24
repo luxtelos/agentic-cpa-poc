@@ -1,50 +1,80 @@
-import type { PDFFont, PDFPage } from 'pdf-lib';
-import type { PdfSectionType } from './markdownProcessor';
+/**
+ * Utilities for handling text encoding issues in PDF generation
+ */
+import type { PDFFont, PDFPage as PDFLibPage, RGB } from 'pdf-lib';
 
-export function measureText(page: PDFPage, text: string, font: PDFFont, size: number, maxWidth: number) {
-  const width = font.widthOfTextAtSize(text, size);
-  const height = size * 1.2; // Approximate line height
-  return { width, height };
+// Common Unicode character replacements for WinAnsi encoding
+const UNICODE_REPLACEMENTS: Record<string, string> = {
+  '\u2248': '~',   // ≈ → ~
+  '\u2260': '!=',  // ≠ → !=
+  '\u2264': '<=',  // ≤ → <=
+  '\u2265': '>=',  // ≥ → >=
+  '\u00B1': '+/-', // ± → +/-
+  '\u20AC': 'EUR', // € → EUR
+  '\u00A3': 'GBP', // £ → GBP
+  '\u00A5': 'JPY', // ¥ → JPY
+  '\u201C': '"',   // “ → "
+  '\u201D': '"',   // ” → "
+  '\u2018': "'",   // ‘ → '
+  '\u2019': "'",   // ’ → '
+  '\u2013': '-',   // – → -
+  '\u2014': '--',  // — → --
+};
+
+/**
+ * Sanitizes text for WinAnsi encoding by replacing unsupported Unicode characters
+ * @param text Input text potentially containing unsupported characters
+ * @returns Text with unsupported characters replaced
+ */
+export function sanitizeForWinAnsi(text: string): string {
+  return text.replace(/[^\u0000-\u00FF]/g, (char) => {
+    return UNICODE_REPLACEMENTS[char] || ' ';
+  });
 }
 
-export function wrapText(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
-  const words = text.split(/([\s\-/])/);
-  const lines: string[] = [];
-  let currentLine = '';
-  
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const testLine = currentLine + word;
-    const testWidth = font.widthOfTextAtSize(testLine, fontSize);
-    
-    if (testWidth <= maxWidth || currentLine === '') {
-      currentLine = testLine;
+/**
+ * Safely draws text on a PDF page with fallback for unsupported characters
+ * @param page PDF page to draw on
+ * @param text Text to draw
+ * @param options Drawing options
+ */
+export async function safeDrawText(
+  page: PDFPage, 
+  text: string, 
+  options: TextDrawOptions
+): Promise<void> {
+  try {
+    page.drawText(text, options);
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('WinAnsi cannot encode')) {
+      const sanitized = sanitizeForWinAnsi(text);
+      page.drawText(sanitized, options);
+      console.warn('Replaced unsupported characters in text:', {
+        original: text,
+        sanitized,
+        error: error.message
+      });
     } else {
-      lines.push(currentLine);
-      currentLine = word;
+      throw error;
     }
   }
-  
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  
-  return lines;
 }
 
-export function calculateVerticalSpacing(
-  baseSpacing: number,
-  contentHeight: number,
-  type: PdfSectionType
-): number {
-  switch (type) {
-    case 'heading':
-      return baseSpacing + contentHeight * 2.0; // Increased spacing for headings
-    case 'table':
-      return baseSpacing + contentHeight * 1.5; // More table spacing
-    case 'section':
-      return baseSpacing + contentHeight * 2.5; // Extra spacing for key sections
-    default:
-      return baseSpacing + contentHeight * 1.2; // Slightly increased default
-  }
+// Type definitions for PDF operations
+interface PDFPage {
+  drawText(text: string, options: TextDrawOptions): void;
 }
+
+interface TextDrawOptions {
+  x: number;
+  y: number;
+  size?: number;
+  font?: PDFFont;
+  color?: RGB | [number, number, number];
+  rotate?: { angle: number; origin?: [number, number] };
+  opacity?: number;
+  lineHeight?: number;
+}
+
+// Export existing text measurement utilities for backward compatibility
+export * from './pdfTextMeasurement';
