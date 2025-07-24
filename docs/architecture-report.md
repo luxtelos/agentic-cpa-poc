@@ -72,3 +72,17 @@ flowchart TD
 - Performance: Bundle optimization
 - Maintainability: Clear ADRs, logging
 - Usability: Error handling, feedback
+
+### 8. Markdown Processing ([ADR-0008](/docs/adr/0008-markdown-processing.md))
+- Unified/remark ecosystem for parsing
+- Supports both JSON and markdown input
+- Custom remark plugins for:
+  - Strategy extraction
+  - Deadline parsing
+  - Roadmap generation
+- Strict schema validation with:
+  - Detailed error messages
+  - Value constraints
+  - Format validation
+- Robust error handling with fallback behavior
+- Comprehensive test coverage

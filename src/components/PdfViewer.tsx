@@ -1,48 +1,48 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Download } from 'lucide-react';
+import { validatePdfStructure } from '../lib/pdfValidator';
 
 interface PdfViewerProps {
-  pdfData: Uint8Array;
+  pdfUrl: string;
   className?: string;
 }
 
-export function PdfViewer({ pdfData, className = '' }: PdfViewerProps) {
-  const [pdfUrl, setPdfUrl] = useState<string>('');
+export function PdfViewer({ pdfUrl, className = '' }: PdfViewerProps) {
   const [error, setError] = useState<string>('');
+  const [isValidPdf, setIsValidPdf] = useState<boolean>(false);
 
   useEffect(() => {
-    try {
-      if (!pdfData || pdfData.length === 0) {
-        throw new Error('Empty PDF data received');
+    const validatePdf = async () => {
+      if (!pdfUrl) {
+        setError('No PDF URL provided');
+        return;
       }
 
-      // Validate PDF header
-      const header = Array.from(pdfData.slice(0, 4)).map(b => b.toString(16)).join('');
-      if (header !== '25504446') { // %PDF in hex
-        throw new Error('Invalid PDF format');
-      }
-
-      // Clean up previous URL if exists
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
-
-      const blob = new Blob([pdfData], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load PDF');
-      console.error('PDF loading error:', err);
-    }
-
-    return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
+      try {
+        const response = await fetch(pdfUrl);
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        
+        const validation = validatePdfStructure(bytes);
+        if (!validation.isValid) {
+          throw new Error(`Invalid PDF: ${validation.errors.join(', ')}`);
+        }
+        
+        setIsValidPdf(true);
+      } catch (err) {
+        setError(err.message);
+        setIsValidPdf(false);
       }
     };
-  }, [pdfData]);
+
+    validatePdf();
+
+    // Cleanup function
+    return () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    };
+  }, [pdfUrl]);
 
   const handleDownload = () => {
     if (!pdfUrl) return;
@@ -55,7 +55,7 @@ export function PdfViewer({ pdfData, className = '' }: PdfViewerProps) {
   if (error) {
     return (
       <div className={`border rounded-lg bg-background p-4 text-center ${className}`}>
-        <p className="text-red-500">{error}</p>
+        <p className="text-red-500">PDF Validation Error: {error}</p>
         {pdfUrl && (
           <Button 
             variant="ghost" 
@@ -71,11 +71,11 @@ export function PdfViewer({ pdfData, className = '' }: PdfViewerProps) {
     );
   }
 
-  if (!pdfUrl) {
+  if (!isValidPdf) {
     return (
       <div className={`border rounded-lg bg-background p-4 text-center ${className}`}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-        <p className="text-gray-600">Loading PDF...</p>
+        <p className="text-gray-600">Validating PDF...</p>
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function PdfViewer({ pdfData, className = '' }: PdfViewerProps) {
           className="min-h-[600px]"
           title="PDF Preview"
           style={{ 
-            minWidth: '842px', // Match PDF page width
+            minWidth: '842px',
             width: '100%',
             maxWidth: 'none'
           }}

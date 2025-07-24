@@ -1,183 +1,213 @@
-import { Document, Page, StyleSheet, View, Text } from '@react-pdf/renderer';
-import { PdfTable } from './PdfTable';
-import type { Strategy, TaxReport, PdfTableData } from '../../lib/pdfTypes';
-import { StrategyCard } from './StrategyCard';
-import { formatCurrency } from '../../lib/pdfUtils';
+import React from 'react';
+import { 
+  Document, 
+  Page, 
+  Text, 
+  View, 
+  StyleSheet, 
+  Font
+} from '@react-pdf/renderer';
+import { 
+  TaxReportData, 
+  CompanyInfo, 
+  FinancialItem, 
+  DisclosureItem,
+  RecommendationItem
+} from '../../lib/taxReportTypes';
+
+// Register fonts - fallback to Helvetica
+Font.register({
+  family: 'Helvetica',
+  fonts: [
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf', fontWeight: 400 },
+    { src: 'https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf', fontWeight: 700 },
+  ]
+});
 
 const styles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: 'Helvetica'
-  },
-  spacer: {
-    height: 24, // 1.5x line height
-    marginBottom: 12
+    fontFamily: 'Helvetica',
+    fontSize: 10,
+    lineHeight: 1.4
   },
   header: {
-    marginBottom: 20,
-    paddingBottom: 10,
-    borderBottom: '1px solid #e2e8f0'
+    position: 'absolute',
+    top: 20,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    marginBottom: 20
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    fontSize: 8
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#1e40af'
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#6b7280'
-  },
-  section: {
-    marginBottom: 15
-  },
-  sectionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#1e40af'
+    marginBottom: 5
   },
-  summaryItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  section: {
+    marginTop: 20
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
     marginBottom: 8,
-    paddingVertical: 4,
-    borderBottom: '1px solid #f3f4f6'
+    borderBottom: '1pt solid #333',
+    paddingBottom: 3
   },
-  summaryLabel: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#374151'
-  },
-  summaryValue: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#1e40af'
-  },
-  financialItem: {
-    marginBottom: 12,
-    paddingLeft: 8,
-    borderLeft: '2px solid #1e40af'
-  },
-  paragraph: {
-    fontSize: 12,
-    lineHeight: 1.5,
+  table: {
+    width: '100%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#ddd',
     marginBottom: 10
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd'
+  },
+  tableHeader: {
+    backgroundColor: '#f0f0f0',
+    fontWeight: 'bold'
+  },
+  tableCell: {
+    flex: 1,
+    borderRight: '1pt solid #ddd',
+    padding: 4,
+    textAlign: 'right'
+  },
+  tableCellLeft: {
+    flex: 1,
+    borderRight: '1pt solid #ddd',
+    padding: 4,
+    textAlign: 'left'
+  },
+  disclosureItem: {
+    marginBottom: 5
+  },
+  disclosureTitle: {
+    fontWeight: 'bold'
+  },
+  recommendationItem: {
+    marginBottom: 8
   }
 });
 
-export const TaxReportDocument = ({ report }: { report: TaxReport }) => {
-  // Deduplicate strategies by title
-  const uniqueStrategies = report.strategies.reduce((acc, strategy) => {
-    if (!acc.some(s => s.title === strategy.title)) {
-      acc.push(strategy);
-    }
-    return acc;
-  }, [] as Strategy[]);
+const Header = ({ title }: { title: string }) => (
+  <View style={styles.header} fixed>
+    <Text style={styles.title}>{title}</Text>
+  </View>
+);
 
-  const renderSection = (title: string, content?: string | PdfTableData) => {
-    if (!content) return null;
-    
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {typeof content === 'string' ? (
-          <PdfTable content={content} />
-        ) : (
-          <PdfTable {...content} />
-        )}
+const Footer = () => (
+  <View style={styles.footer} fixed>
+    <Text render={({ pageNumber, totalPages }) => 
+      `Page ${pageNumber} of ${totalPages}`
+    } />
+  </View>
+);
+
+interface FinancialTableProps {
+  title: string;
+  data: FinancialItem[];
+}
+
+const FinancialTable = ({ title, data }: FinancialTableProps) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={styles.table}>
+      <View style={[styles.tableRow, styles.tableHeader]}>
+        <Text style={[styles.tableCellLeft, { flex: 3 }]}>Description</Text>
+        <Text style={styles.tableCell}>Amount</Text>
       </View>
-    );
-  };
+      {data.map((item, index) => (
+        <View style={styles.tableRow} key={index}>
+          <Text style={[styles.tableCellLeft, { flex: 3 }]}>{item.description}</Text>
+          <Text style={styles.tableCell}>{item.amount}</Text>
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
-  const renderTextSection = (title: string, content?: string) => {
-    if (!content) return null;
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.paragraph}>{content}</Text>
+interface DisclosureListProps {
+  disclosures: DisclosureItem[];
+}
+
+const DisclosureList = ({ disclosures }: DisclosureListProps) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Key Disclosures</Text>
+    {disclosures.map((item, index) => (
+      <View style={styles.disclosureItem} key={index}>
+        <Text style={styles.disclosureTitle}>{item.title}:</Text>
+        <Text>{item.content}</Text>
       </View>
-    );
-  };
+    ))}
+  </View>
+);
 
-  return (
-    <Document>
-      {/* Header Page */}
-      <Page size="A4" style={styles.page}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Tax Optimization Report</Text>
-          <Text style={styles.subtitle}>
-            Comprehensive Tax Minimization Strategy Report
-          </Text>
-        </View>
-      </Page>
+interface RecommendationsProps {
+  recommendations: RecommendationItem[];
+}
 
-      {/* Content Pages */}
-      <Page size="A4" style={styles.page}>
-        {/* Executive Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Executive Summary</Text>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryLabel}>Industry:</Text>
-            <Text style={styles.summaryValue}>{report.executiveSummary.industry}</Text>
-          </View>
-          <View style={styles.financialItem}>
-            <Text style={styles.summaryLabel}>Revenue:</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(report.executiveSummary.revenue)}
-            </Text>
-          </View>
-          <View style={styles.financialItem}>
-            <Text style={styles.summaryLabel}>Current Tax Rate:</Text>
-            <Text style={styles.summaryValue}>
-              {report.executiveSummary.currentTaxRate.toFixed(2)}%
-            </Text>
-          </View>
-          <View style={styles.financialItem}>
-            <Text style={styles.summaryLabel}>Projected Savings:</Text>
-            <Text style={styles.summaryValue}>
-              {formatCurrency(report.executiveSummary.projectedSavings)}
-            </Text>
-          </View>
-        </View>
+const Recommendations = ({ recommendations }: RecommendationsProps) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Recommendations</Text>
+    {recommendations.map((item, index) => (
+      <View style={styles.recommendationItem} key={index}>
+        <Text style={{ fontWeight: 'bold' }}>{item.description}</Text>
+        {item.details.map((detail, idx) => (
+          <Text key={idx}>• {detail}</Text>
+        ))}
+      </View>
+    ))}
+  </View>
+);
 
-        {/* Peer Benchmarking */}
-        {renderTextSection('Peer Benchmarking Results', report.executiveSummary.benchmarkingNotes)}
+interface CompanyInfoProps {
+  companyInfo: CompanyInfo;
+}
 
-        {/* Prioritized Strategies */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Prioritized Strategies</Text>
-          {uniqueStrategies.map((strategy, i) => (
-            <StrategyCard key={strategy.id || i} strategy={strategy} />
-          ))}
-        </View>
-      </Page>
+const CompanyInfoSection = ({ companyInfo }: CompanyInfoProps) => (
+  <View style={styles.section}>
+    <Text style={styles.sectionTitle}>Company Information</Text>
+    <Text>Legal Name: {companyInfo.name}</Text>
+    <Text>Address: {companyInfo.address}</Text>
+    <Text>EIN: {companyInfo.ein}</Text>
+    <Text>Tax Year: {companyInfo.taxYear}</Text>
+    <Text>Business Activity: {companyInfo.businessActivity}</Text>
+    {companyInfo.naicsCode && <Text>NAICS Code: {companyInfo.naicsCode}</Text>}
+  </View>
+);
 
-      {/* Additional Pages */}
-      <Page size="A4" style={styles.page}>
-        {/* Implementation Roadmap */}
-        {renderSection('Implementation Roadmap', report.roadmapTable)}
-
-        {/* Compliance Calendar */}
-        {renderSection('Compliance Calendar', report.complianceCalendarTable)}
-
-        {/* Projected Savings */}
-        {renderSection('Total Projected Savings', report.projectedSavingsTable)}
-      </Page>
-
-      {/* Risk Assessment Page */}
-      {report.riskAssessment && (
-        <Page size="A4" style={styles.page}>
-          {renderTextSection('Risk Assessment & Compliance', report.riskAssessment)}
-        </Page>
-      )}
-
-      {/* Legal Disclaimer */}
-      {report.legalDisclaimer && (
-        <Page size="A4" style={styles.page}>
-          {renderTextSection('Legal Disclaimer', report.legalDisclaimer)}
-        </Page>
-      )}
-    </Document>
-  );
-};
+export const TaxReportDocument = ({ reportData }: { reportData: TaxReportData }) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <Header title="Tax Advisory Report" />
+      
+      <CompanyInfoSection companyInfo={reportData.companyInfo} />
+      
+      <FinancialTable title="Income Summary" data={reportData.incomeSummary} />
+      <FinancialTable title="Deductions" data={reportData.deductions} />
+      <FinancialTable title="Tax Computation" data={reportData.taxComputation} />
+      
+      <DisclosureList disclosures={reportData.disclosures} />
+      <Recommendations recommendations={reportData.recommendations} />
+      
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Final Assessment</Text>
+        <Text>{reportData.finalAssessment}</Text>
+      </View>
+      
+      <Footer />
+    </Page>
+  </Document>
+);

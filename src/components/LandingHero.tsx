@@ -20,10 +20,19 @@ const LandingHero: React.FC = () => {
   const { toast } = useToast();
   const [pdfText, setPdfText] = useState('');
 
+  const validatePdf = async (file: File) => {
+    if (file.size < 1024) throw new Error('PDF too small');
+    const slice = await file.slice(0, 4).text();
+    if (slice !== '%PDF') throw new Error('Invalid PDF format');
+    return true;
+  };
+
   const handleFileUpload = async (file: File) => {
-    
     setIsUploading(true);
     try {
+      // Validate before processing
+      await validatePdf(file);
+      
       if (file.type !== 'application/pdf') {
         toast({
           title: 'Invalid File Type',
@@ -86,11 +95,17 @@ const LandingHero: React.FC = () => {
       const apiPayload = await preparePerplexityApiPayload(fullText);
       console.log('Prepared Perplexity API Payload:', apiPayload);
     } catch (error) {
+      console.error('[PDF] Processing Error:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
       toast({
         title: 'Error Processing PDF',
         description: 'Failed to extract text from PDF',
         variant: 'destructive',
       });
+      throw error; // Re-throw to trigger ErrorDocument
     } finally {
       setIsUploading(false);
     }
@@ -99,13 +114,24 @@ const LandingHero: React.FC = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportContent, setReportContent] = useState('');
-  const [pdfData, setPdfData] = useState<Uint8Array>(new Uint8Array(0));
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const sendToPerplexity = async () => {
     if (!pdfText) {
       toast({
         title: 'No Text Found',
         description: 'Please upload and process a PDF first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Verify PDF worker is loaded
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      toast({
+        title: 'PDF Worker Error',
+        description: 'PDF rendering worker not loaded',
         variant: 'destructive',
       });
       return;
@@ -126,6 +152,13 @@ const LandingHero: React.FC = () => {
       setReportContent(report);
       const pdfBytes = await generateTaxPdf(report);
       setPdfData(pdfBytes);
+      // Create blob URL for viewing
+      const blobUrl = URL.createObjectURL(new Blob([pdfBytes], { type: 'application/pdf' }));
+      setPdfUrl(blobUrl);
+      // Cleanup on component unmount
+      return () => {
+        if (blobUrl) URL.revokeObjectURL(blobUrl);
+      };
       console.log('[DEBUG] Report - Generated content:', {
         rawLength: rawContent.length,
         reportLength: report.length,
@@ -137,12 +170,18 @@ const LandingHero: React.FC = () => {
         description: 'AI recommendations ready',
       });
     } catch (error) {
-      console.error('Async job failed:', error);
+      console.error('[API] Processing Error:', {
+        message: error instanceof Error ? error.message : 'Unknown API error',
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+        inputLength: pdfText?.length
+      });
       toast({
         title: 'Error Generating Report',
         description: error instanceof Error ? error.message : 'Failed to generate recommendations',
         variant: 'destructive',
       });
+      throw error; // Re-throw to trigger ErrorDocument
     } finally {
       setIsProcessing(false);
     }
@@ -242,12 +281,21 @@ const LandingHero: React.FC = () => {
           </div>
 
           {/* PDF Report */}
-          {pdfData.length > 0 && (
+          {pdfUrl && (
             <div className="mt-8 w-full max-w-3xl mx-auto mb-16">
               <PdfViewer 
-                pdfData={pdfData}
+                pdfUrl={pdfUrl}
                 className="min-h-[600px] max-h-[80vh]"
               />
+              <div className="mt-4 flex justify-center">
+                <a
+                  href={pdfUrl}
+                  download="tax-report.pdf"
+                  className="inline-flex items-center gap-x-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500"
+                >
+                  Download PDF Report
+                </a>
+              </div>
             </div>
           )}
         </div>
