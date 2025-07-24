@@ -3,7 +3,7 @@ import remarkParse from 'remark-parse'
 import remarkGfm from 'remark-gfm'
 import { visit } from 'unist-util-visit'
 import type { Root, Heading, Table, List } from 'mdast'
-import type { VFile } from 'vfile'
+import { VFile } from 'vfile'
 import { TaxStrategyData } from './taxReportTypes'
 import { validateTaxStrategyData } from './taxReportSchema'
 
@@ -22,8 +22,10 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
       .use(remarkGfm)
       .use(remarkTaxStrategy)
 
-    const file = processor.processSync(markdown)
-    const state = file.data?.state as ProcessingState | undefined
+    const vfile = new VFile({ value: markdown })
+    const tree = processor.parse(vfile)
+    processor.runSync(tree, vfile)
+    const state = vfile.data?.state as ProcessingState | undefined
     
     if (!state) {
       throw new Error('Failed to process markdown - no state generated')
@@ -36,7 +38,7 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
         effectiveTaxRate: state.summary.effectiveTaxRate || 0,
         industryBenchmark: state.summary.industryBenchmark || 0,
         potentialSavings: state.summary.potentialSavings || 0,
-        implementationComplexity: state.summary.implementationComplexity || 0
+        implementationComplexity: state.summary.implementationComplexity || 3
       },
       strategies: state.strategies || [],
       roadmap: state.roadmap || [],
@@ -69,13 +71,20 @@ export function parseMarkdownToStrategy(markdown: string): TaxStrategyData {
 
 function remarkTaxStrategy() {
   return (tree: Root, file: VFile) => {
+    const getText = (n: any): string => {
+      let value = ''
+      visit(n, (child) => {
+        if (child.type === 'text') value += child.value
+      })
+      return value
+    }
     const state: ProcessingState = {
       summary: { 
         companyName: 'Unknown Company',
         effectiveTaxRate: 0,
         industryBenchmark: 0,
         potentialSavings: 0,
-        implementationComplexity: 0
+        implementationComplexity: 3
       },
       strategies: [],
       roadmap: [],
@@ -87,7 +96,7 @@ function remarkTaxStrategy() {
 
     let currentText = ''
 
-    visit(tree, (node) => {
+    visit(tree, (node, index, parent) => {
       if (node.type === 'heading') {
         const heading = node as Heading
         const text = heading.children
@@ -105,13 +114,9 @@ function remarkTaxStrategy() {
         if (state.currentSection?.includes('summary')) {
           // Match company name from various formats in summary section
           if (state.currentSection?.toLowerCase().includes('summary')) {
-            const companyMatch = currentText.match(/^- Company:\s*(.*)/im) || 
-                              currentText.match(/## Executive Summary[^#]*Company:\s*(.*)/im) ||
-                              currentText.match(/Company:\s*\*\*(.*?)\*\*/im) ||
-                              currentText.match(/Company Name:\s*(.*)/im) ||
-                              currentText.match(/^#+\s*Executive Summary[^#]*- Company:\s*(.*)/im)
+            const companyMatch = currentText.match(/(?:Company|Legal Name):\s*\**([^\n]*)/i)
             if (companyMatch) {
-              state.summary.companyName = companyMatch[1].trim()
+              state.summary.companyName = companyMatch[1].replace(/\*/g, '').trim()
             }
           }
           
@@ -142,30 +147,17 @@ function remarkTaxStrategy() {
       }
       else if (node.type === 'list') {
         const list = node as List
-        if (state.currentSection?.toLowerCase().includes('deadlines')) {
+        if (state.currentSection?.toLowerCase().includes('deadlines') && parent?.type !== 'listItem') {
           list.children.forEach(item => {
-            const monthMatch = item.children
-              .filter(child => child.type === 'paragraph')
-              .flatMap(p => p.children)
-              .filter(child => child.type === 'text')
-              .map(child => child.value)
-              .join('')
-              .match(/^\*\*(.*?)\*\*/)
+            const header = item.children.find(c => c.type === 'paragraph')
+            const monthText = header ? getText(header) : ''
+            const monthMatch = monthText.match(/\*\*(.*?)\*\*/)
             
             if (monthMatch) {
               const requirements = item.children
                 .filter(child => child.type === 'list')
                 .flatMap(sublist => sublist.children)
-                .map(li => 
-                  li.children
-                    .filter(child => child.type === 'paragraph')
-                    .flatMap(p => p.children)
-                    .filter(child => child.type === 'text')
-                    .map(child => child.value)
-                    .join('')
-                    .replace(/^-/, '')
-                    .trim()
-                )
+                .map(li => getText(li).replace(/^-/, '').trim())
                 .filter(r => r)
               
               state.deadlines.push({
@@ -175,7 +167,7 @@ function remarkTaxStrategy() {
             }
           })
         }
-        else if (state.currentSection?.toLowerCase().includes('strategies')) {
+        else if (state.currentSection?.toLowerCase().includes('strategies') && parent?.type !== 'listItem') {
           list.children.forEach(item => {
             const text = item.children
               .filter(child => child.type === 'paragraph')
@@ -209,6 +201,28 @@ function remarkTaxStrategy() {
                 risk: riskMatch?.[1] || 'Medium',
                 compliance: complianceMatch?.[1] || 'Required'
               })
+            }
+          })
+        }
+        else if (state.currentSection?.toLowerCase().includes('roadmap') && parent?.type !== 'listItem') {
+          list.children.forEach(item => {
+            const header = item.children.find(c => c.type === 'paragraph')
+            const quarter = header ? getText(header).replace(/:$/, '').trim() : ''
+            const entry = state.roadmap.find(r => r.quarter === quarter) || { quarter, actions: [], deadlines: [] }
+            item.children
+              .filter(child => child.type === 'list')
+              .flatMap(sub => (sub as List).children)
+              .forEach(li => {
+                const t = getText(li)
+                const d = t.match(/^deadline:\s*(.*)/i)
+                if (d) {
+                  if (d[1]) entry.deadlines.push(d[1].trim())
+                } else if (t) {
+                  entry.actions.push(t)
+                }
+              })
+            if (!state.roadmap.find(r => r.quarter === quarter) && quarter) {
+              state.roadmap.push(entry)
             }
           })
         }
