@@ -37,5 +37,11 @@ export class PdfService {
     a.href = url;
     a.download = filename;
     a.click();
+    
+    // Clean up after download completes (1s delay is conservative)
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 1000);
   }
 }
