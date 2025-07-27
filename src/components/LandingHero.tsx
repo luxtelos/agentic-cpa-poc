@@ -18,6 +18,7 @@ const LandingHero: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const [pdfText, setPdfText] = useState('');
+  const [fileCount, setFileCount] = useState(0);
 
   const handleFileUpload = async (file: File) => {
     
@@ -189,9 +190,14 @@ const LandingHero: React.FC = () => {
                   id="taxFile"
                   accept="application/pdf"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleFileUpload(file);
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const files = e.target.files;
+                    if (files) {
+                      setFileCount(files.length);
+                      if (files.length > 0) {
+                        handleFileUpload(files[0]);
+                      }
+                    }
                   }}
                 />
                 <label
@@ -203,7 +209,7 @@ const LandingHero: React.FC = () => {
                   ) : (
                     <Upload className="h-5 w-5" />
                   )}
-                  {isUploading ? 'Processing...' : 'Upload PDF'}
+                  {isUploading ? 'Processing...' : (fileCount > 0 ? `Uploaded (${fileCount}) files` : 'Upload PDF')}
                 </label>
               </div>
 
