@@ -1,33 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Corporate Tax Optimizer</title>
-    <meta name="description" content="Smart tax solution for optimizing corporate returns effortlessly." />
-    <link rel="icon" type="image/svg+xml" href="/placeholder.svg" />
-    <link rel="prefetch" href="/pdf.worker.min.js" as="script" />
-
-    <meta property="og:title" content="Corporate Tax Optimizer" />
-    <meta property="og:description" content="Smart tax solution for optimizing corporate returns effortlessly." />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/og.jpg" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/og.jpg" />
-  </head>
-
-  <body>
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: 10px; left: 10px; width: 80px; height: auto; z-index: 1000; margin: 10px;">
-      <g>
+<svg preserveAspectRatio="xMidYMid meet" data-bbox="37.845 29.486 122.301 139.654" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" data-type="ugc" role="presentation" aria-hidden="true" aria-label="">
+    <g>
         <defs>
-          <linearGradient gradientUnits="userSpaceOnUse" y2="46.47" x2="151.84" y1="166.97" x1="66.92" id="669b3b04-5688-4711-9fa2-acc90f64dc68_comp-lblozxy3">
-            <stop stop-color="#104aa0" offset=".18"></stop>
-            <stop stop-color="#327ab7" offset=".36"></stop>
-            <stop stop-color="#51a6cb" offset=".54"></stop>
-            <stop stop-color="#63c1d8" offset=".68"></stop>
-            <stop stop-color="#6bcbdd" offset=".77"></stop>
-          </linearGradient>
+            <linearGradient gradientUnits="userSpaceOnUse" y2="46.47" x2="151.84" y1="166.97" x1="66.92" id="669b3b04-5688-4711-9fa2-acc90f64dc68_comp-lblozxy3">
+                <stop stop-color="#104aa0" offset=".18"></stop>
+                <stop stop-color="#327ab7" offset=".36"></stop>
+                <stop stop-color="#51a6cb" offset=".54"></stop>
+                <stop stop-color="#63c1d8" offset=".68"></stop>
+                <stop stop-color="#6bcbdd" offset=".77"></stop>
+            </linearGradient>
         </defs>
         <path fill="#6bcbdd" d="M123.483 62.146c3.657 4.211 3.208 10.59-1.004 14.248-4.212 3.657-10.59 3.208-14.248-1.004-3.657-4.212-3.208-10.591 1.004-14.248 4.211-3.658 10.59-3.208 14.248 1.004z"></path>
         <path d="m158.11 121.78-19.19-33.24c-2.79-4.83-8.96-6.48-13.79-3.7-4.83 2.79-6.48 8.96-3.7 13.79l12.63 21.87c.95 1.65-.24 3.71-2.14 3.71H66.08c-1.9 0-3.09-2.06-2.14-3.71l43.8-75.87c2.79-4.83 1.13-11-3.7-13.79-4.83-2.79-11-1.13-13.79 3.7l-50.36 87.24c-5.81 10.06 1.45 22.63 13.06 22.63h92.09c11.61 0 18.87-12.57 13.06-22.63Z" fill="url(#669b3b04-5688-4711-9fa2-acc90f64dc68_comp-lblozxy3)"></path>
@@ -39,9 +19,5 @@
         <path d="M120.76 155.76h1.41v13.38h-1.41v-13.38Z" fill="#ffffff"></path>
         <path d="m138.27 155.76-5.93 13.38h-1.4l-5.93-13.38h1.53l5.12 11.62 5.16-11.62h1.43Z" fill="#ffffff"></path>
         <path d="M150.43 167.92v1.22h-9.46v-13.38h9.18v1.22h-7.76v4.76h6.92v1.21h-6.92v4.97h8.05Z" fill="#ffffff"></path>
-      </g>
-    </svg>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    </g>
+</svg>
