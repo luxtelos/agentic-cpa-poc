@@ -12,15 +12,15 @@ const DeductionAnalyzer: React.FC = () => {
 
   if (!taxData) {
     return (
-      <Card className="border-0 shadow-xl">
+      <Card className="border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-blue-600" />
+            <AlertCircle className="w-5 h-5 text-primary-600" />
             Deduction Analyzer
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500">Upload a tax file to analyze deductions</p>
+          <p className="text-muted-foreground">Upload a tax file to analyze deductions</p>
         </CardContent>
       </Card>
     );
@@ -29,11 +29,11 @@ const DeductionAnalyzer: React.FC = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'claimed':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-success-600" />;
       case 'missed':
-        return <XCircle className="w-4 h-4 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-error-600" />;
       case 'potential':
-        return <AlertCircle className="w-4 h-4 text-yellow-600" />;
+        return <AlertCircle className="w-4 h-4 text-warning-600" />;
       default:
         return null;
     }
@@ -42,13 +42,13 @@ const DeductionAnalyzer: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'claimed':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success-100 text-success-800';
       case 'missed':
-        return 'bg-red-100 text-red-800';
+        return 'bg-error-100 text-error-800';
       case 'potential':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning-100 text-warning-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -69,24 +69,24 @@ const DeductionAnalyzer: React.FC = () => {
     .reduce((sum, d) => sum + d.amount, 0);
 
   return (
-    <Card className="border-0 shadow-xl">
+    <Card className="border-0 shadow-lg animate-slide-in-from-left">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-blue-600" />
+          <AlertCircle className="w-5 h-5 text-primary-600" />
           Deduction Analyzer
         </CardTitle>
         <div className="grid grid-cols-3 gap-4 mt-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">${totalClaimed.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Claimed</div>
+            <div className="text-2xl font-bold text-success-600">${totalClaimed.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">Claimed</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">${totalMissed.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Missed</div>
+            <div className="text-2xl font-bold text-error-600">${totalMissed.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">Missed</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-yellow-600">${totalPotential.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Potential</div>
+            <div className="text-2xl font-bold text-warning-600">${totalPotential.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground">Potential</div>
           </div>
         </div>
       </CardHeader>
@@ -102,12 +102,12 @@ const DeductionAnalyzer: React.FC = () => {
           <TabsContent value={activeTab} className="mt-4">
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {filteredDeductions.map((deduction) => (
-                <div key={deduction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div key={deduction.id} className="flex items-center justify-between p-3 bg-muted rounded-lg hover:bg-accent transition-all duration-200 hover:shadow-sm">
                   <div className="flex items-center gap-3">
                     {getStatusIcon(deduction.status)}
                     <div>
                       <div className="font-medium">{deduction.category}</div>
-                      <div className="text-sm text-gray-600">{deduction.description}</div>
+                      <div className="text-sm text-muted-foreground">{deduction.description}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ const DeductionAnalyzer: React.FC = () => {
               ))}
               
               {filteredDeductions.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-muted-foreground">
                   No deductions found for this category
                 </div>
               )}
@@ -129,7 +129,7 @@ const DeductionAnalyzer: React.FC = () => {
         </Tabs>
         
         <div className="mt-6 pt-4 border-t">
-          <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+          <Button className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 transition-all duration-200">
             <Plus className="w-4 h-4 mr-2" />
             Add Custom Deduction
           </Button>
