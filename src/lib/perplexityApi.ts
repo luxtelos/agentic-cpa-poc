@@ -84,7 +84,50 @@ export async function preparePerplexityApiPayload(content: string) {
 }
 
 export function extractReportContent(rawResponse: string) {
-  const report = rawResponse.split('</think>')[1]?.trim() ?? rawResponse;
+  // Remove <think> or <thinking> opening and closing tags (can be mismatched)
+  let report = rawResponse;
+  
+  // Find any opening tag
+  const thinkStart = report.indexOf('<think>');
+  const thinkingStart = report.indexOf('<thinking>');
+  
+  // Find any closing tag (could be mismatched)
+  const thinkEnd = report.indexOf('</think>');
+  const thinkingEnd = report.indexOf('</thinking>');
+  
+  // Determine which closing tag to use (whichever comes first and exists)
+  let endTagIndex = -1;
+  let endTagLength = 0;
+  
+  if (thinkEnd !== -1 && (thinkingEnd === -1 || thinkEnd < thinkingEnd)) {
+    endTagIndex = thinkEnd;
+    endTagLength = '</think>'.length;
+  } else if (thinkingEnd !== -1) {
+    endTagIndex = thinkingEnd;
+    endTagLength = '</thinking>'.length;
+  }
+  
+  // If we found any closing tag, extract everything after it
+  if (endTagIndex !== -1) {
+    report = report.substring(endTagIndex + endTagLength).trim();
+  }
+  // If no closing tag but there's an opening tag, try to extract after the opening tag's content
+  else if (thinkStart !== -1 || thinkingStart !== -1) {
+    // This is a fallback for malformed responses
+    console.warn('[DEBUG] Found opening think tag but no closing tag');
+  }
+  
+  // Clean up any leading whitespace or newlines
+  report = report.replace(/^\s+/, '');
+  
+  console.log('[DEBUG] Extracted report content', {
+    originalLength: rawResponse.length,
+    extractedLength: report.length,
+    hadOpeningTag: thinkStart !== -1 || thinkingStart !== -1,
+    closingTagFound: endTagIndex !== -1,
+    closingTagType: endTagIndex === thinkEnd ? '</think>' : endTagIndex === thinkingEnd ? '</thinking>' : 'none'
+  });
+  
   return report;
 }
 

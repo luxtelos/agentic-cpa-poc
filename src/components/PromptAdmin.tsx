@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -15,10 +15,35 @@ import {
 
 export default function PromptAdmin() {
   const { toast } = useToast();
-  const [prompt, setPrompt] = useState(
-    localStorage.getItem('customPrompt') || ''
-  );
+  const [prompt, setPrompt] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Load prompt on mount - either from localStorage or default file
+  useEffect(() => {
+    const loadPrompt = async () => {
+      const customPrompt = localStorage.getItem('customPrompt');
+      
+      if (customPrompt) {
+        setPrompt(customPrompt);
+        setIsLoading(false);
+      } else {
+        // Load default prompt from public file
+        try {
+          const response = await fetch('/prompt.txt');
+          if (response.ok) {
+            const defaultPrompt = await response.text();
+            setPrompt(defaultPrompt);
+          }
+        } catch (error) {
+          console.error('Failed to load default prompt:', error);
+        }
+        setIsLoading(false);
+      }
+    };
+    
+    loadPrompt();
+  }, []);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,9 +68,23 @@ export default function PromptAdmin() {
     setIsSaving(false);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     localStorage.removeItem('customPrompt');
-    setPrompt('');
+    // Load the default prompt from file
+    try {
+      const response = await fetch('/prompt.txt');
+      if (response.ok) {
+        const defaultPrompt = await response.text();
+        setPrompt(defaultPrompt);
+        toast({
+          title: 'Reset to Default',
+          description: 'Loaded default prompt from prompt.txt',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load default prompt:', error);
+      setPrompt('');
+    }
   };
 
   return (
@@ -67,12 +106,13 @@ export default function PromptAdmin() {
               />
             </div>
             <div>
-              <Label>Or Enter Manually</Label>
+              <Label>Prompt Editor</Label>
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                className="min-h-[200px]"
-                placeholder="Paste your custom prompt here..."
+                className="min-h-[400px] font-mono text-sm"
+                placeholder={isLoading ? "Loading prompt..." : "Enter your custom prompt here..."}
+                disabled={isLoading}
               />
             </div>
           </div>

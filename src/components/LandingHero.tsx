@@ -5,6 +5,7 @@ import { PdfHandler } from '@/components/PdfHandler';
 import { useAppContext } from '@/contexts/AppContext';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useToast } from '@/components/ui/use-toast';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   preparePerplexityApiPayload,
   getChatCompletion,
@@ -140,10 +141,11 @@ const LandingHero: React.FC = () => {
   };
 
   return (
-    <div className="relative flex-none overflow-y-auto px-6 lg:flex lg:z-40 lg:px-0 min-h-screen">
-      {/* Animated Background */}
-
-      <div className="absolute inset-0 -z-10 overflow-hidden bg-gray-950 lg:right-[calc(max(2rem,50%-38rem)+40rem)] lg:min-w-lg">
+    <div className="min-h-screen bg-white dark:bg-slate-900 transition-colors duration-200">
+      <ThemeToggle />
+      {/* Professional gradient background */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-50/40 via-white to-primary-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
         <svg className="absolute -bottom-48 left-[-40%] h-320 w-[180%] lg:top-[-40%] lg:-right-40 lg:bottom-auto lg:left-auto lg:h-[180%] lg:w-7xl transition-transform duration-1000 ease-in-out" aria-hidden="true" style={{filter: 'blur(0.5px)'}}>
           <defs>
             <radialGradient id="gradient-desktop" cx="100%">
@@ -166,16 +168,17 @@ const LandingHero: React.FC = () => {
             </radialGradient>
           </defs>
         </svg>
+        </div>
       </div>
 
       {/* Hero Content */}
 
       <div className="mx-auto max-w-7xl py-16 sm:py-24 lg:py-32">
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl animate-slide-in-from-top">
             Smart Corporate Tax Optimization
           </h1>
-          <p className="mt-6 text-lg leading-8 text-gray-300">
+          <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300 animate-fade-in">
             Upload your tax documents and get AI-powered recommendations to maximize deductions and minimize liabilities.
           </p>
           
@@ -202,7 +205,7 @@ const LandingHero: React.FC = () => {
                 />
                 <label
                   htmlFor="taxFile"
-                  className="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  className="inline-flex items-center gap-x-2 rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-all duration-200"
                 >
                   {isUploading ? (
                     <Loader2 className="h-5 w-5 animate-spin" />
@@ -217,8 +220,8 @@ const LandingHero: React.FC = () => {
                 <button
                   onClick={sendToPerplexity}
                   disabled={isProcessing}
-                  className={`inline-flex items-center gap-x-2 rounded-md px-3.5 py-2.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
-                    ${isProcessing ? 'bg-gray-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}
+                  className={`inline-flex items-center gap-x-2 rounded-md px-3.5 py-2.5 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 transition-all duration-200
+                    ${isProcessing ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-success-600 hover:bg-success-500 text-white hover:shadow-md'}`}
                 >
                   {isProcessing ? (
                     <>
@@ -234,12 +237,12 @@ const LandingHero: React.FC = () => {
                 </button>
               )}
             </div>
-            <p className="text-sm text-gray-400">Max file size: 5MB</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Max file size: 5MB</p>
           </div>
 
           {/* PDF Report */}
           {reportContent && (
-            <div className="mt-8 w-full max-w-3xl mx-auto mb-16">
+            <div className="mt-8 w-full max-w-3xl mx-auto mb-16 animate-slide-in-from-bottom">
               <PdfHandler 
                 content={reportContent}
                 defaultAction="view"
