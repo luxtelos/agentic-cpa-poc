@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Upload, Calculator, Loader2 } from 'lucide-react';
 import { PdfHandler } from '@/components/PdfHandler';
+import { MultiFileUpload } from '@/components/MultiFileUpload';
 import { useAppContext } from '@/contexts/AppContext';
 import * as pdfjsLib from 'pdfjs-dist';
 import { useToast } from '@/components/ui/use-toast';
@@ -11,6 +12,8 @@ import {
   getChatCompletion,
   extractReportContent
 } from '@/lib/perplexityApi';
+import { LLMServiceFactory, LLMProvider } from '@/services/llm/LLMServiceFactory';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.js';
 
@@ -20,6 +23,9 @@ const LandingHero: React.FC = () => {
   const { toast } = useToast();
   const [pdfText, setPdfText] = useState('');
   const [fileCount, setFileCount] = useState(0);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [provider, setProvider] = useState<LLMProvider>('perplexity');
+  const [useNewUpload, setUseNewUpload] = useState(false);
 
   const handleFileUpload = async (file: File) => {
     
@@ -100,7 +106,53 @@ const LandingHero: React.FC = () => {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [reportContent, setReportContent] = useState('');
+  
+  // Check if Claude is available
+  const availableProviders = LLMServiceFactory.getAvailableProviders();
+  const hasClaudeSupport = availableProviders.includes('claude');
 
+  const processWithLLM = async () => {
+    if (selectedFiles.length === 0 && !pdfText) {
+      toast({
+        title: 'No Files Selected',
+        description: 'Please upload at least one PDF file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const service = LLMServiceFactory.getProvider(provider);
+      
+      // Use new service layer for processing
+      const response = await service.processRequest({
+        files: selectedFiles,
+        prompt: pdfText ? undefined : 'Analyze these tax documents and provide optimization recommendations',
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      
+      setReportContent(response.content);
+      
+      toast({
+        title: 'Report Generated',
+        description: `AI recommendations ready via ${provider}`,
+      });
+    } catch (error) {
+      console.error('LLM processing failed:', error);
+      toast({
+        title: 'Error Generating Report',
+        description: error instanceof Error ? error.message : 'Failed to generate recommendations',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
   const sendToPerplexity = async () => {
     if (!pdfText) {
       toast({
@@ -182,12 +234,63 @@ const LandingHero: React.FC = () => {
             Upload your tax documents and get AI-powered recommendations to maximize deductions and minimize liabilities.
           </p>
           
-          {/* File Upload */}
+          {/* Provider Selection & File Upload */}
+          
+          {hasClaudeSupport && (
+            <div className="mt-6 flex justify-center">
+              <Tabs value={provider} onValueChange={(v) => setProvider(v as LLMProvider)} className="w-auto">
+                <TabsList className="grid grid-cols-2">
+                  <TabsTrigger value="perplexity">Perplexity (Single File)</TabsTrigger>
+                  <TabsTrigger value="claude">Claude (Multi-File)</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
 
           <div className="mt-10 flex flex-col items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <input
+            {/* Toggle between old and new upload UI */}
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUseNewUpload(!useNewUpload)}
+              >
+                {useNewUpload ? 'Use Legacy Upload' : 'Try New Multi-File Upload'}
+              </Button>
+            </div>
+            
+            {useNewUpload ? (
+              <div className="w-full max-w-2xl">
+                <MultiFileUpload
+                  provider={provider}
+                  onFilesReady={setSelectedFiles}
+                  isProcessing={isProcessing}
+                />
+                
+                {selectedFiles.length > 0 && (
+                  <Button
+                    onClick={processWithLLM}
+                    disabled={isProcessing}
+                    className="mt-4 w-full"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Calculator className="h-5 w-5 mr-2" />
+                        Get Tax Recommendations
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <input
                   type="file"
                   name="taxFile"
                   id="taxFile"
@@ -214,9 +317,9 @@ const LandingHero: React.FC = () => {
                   )}
                   {isUploading ? 'Processing...' : (fileCount > 0 ? `Uploaded (${fileCount}) files` : 'Upload PDF')}
                 </label>
-              </div>
+                </div>
 
-              {pdfText && (
+                {pdfText && (
                 <button
                   onClick={sendToPerplexity}
                   disabled={isProcessing}
@@ -235,9 +338,13 @@ const LandingHero: React.FC = () => {
                     </>
                   )}
                 </button>
-              )}
-            </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Max file size: 5MB</p>
+                )}
+              </div>
+            )}
+            
+            {!useNewUpload && (
+              <p className="text-sm text-gray-500 dark:text-gray-400">Max file size: 5MB</p>
+            )}
           </div>
 
           {/* PDF Report */}

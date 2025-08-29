@@ -2,6 +2,15 @@
   command = "npm install && npm run build"
   publish = "dist"
 
+# Claude API Proxy Redirect
+[[redirects]]
+  from = "/proxy-claude/*"
+  to = "https://api.anthropic.com/:splat"
+  status = 200
+  force = true
+  headers = {X-Request-Source = "netlify-proxy"}
+
+# SPA Fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
