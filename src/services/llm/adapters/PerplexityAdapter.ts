@@ -61,7 +61,7 @@ export class PerplexityAdapter extends BaseLLMAdapter {
         error: this.createLLMError(
           error.message || 'Failed to process with Perplexity',
           'PERPLEXITY_ERROR',
-          error.status >= 500
+          error?.status >= 500
         )
       };
     }
