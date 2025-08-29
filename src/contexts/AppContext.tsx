@@ -34,8 +34,11 @@ interface AppContextType {
   toggleSidebar: () => void;
   taxData: TaxData | null;
   uploadTaxFile: (file: File) => Promise<void>;
+  uploadTaxFiles: (files: File[]) => Promise<void>; // New multi-file support
   showDashboard: boolean;
   setShowDashboard: (show: boolean) => void;
+  selectedProvider: 'perplexity' | 'claude' | 'auto';
+  setSelectedProvider: (provider: 'perplexity' | 'claude' | 'auto') => void;
 }
 
 const defaultAppContext: AppContextType = {
@@ -43,8 +46,11 @@ const defaultAppContext: AppContextType = {
   toggleSidebar: () => {},
   taxData: null,
   uploadTaxFile: async () => {},
+  uploadTaxFiles: async () => {},
   showDashboard: false,
   setShowDashboard: () => {},
+  selectedProvider: 'perplexity',
+  setSelectedProvider: () => {},
 };
 
 const AppContext = createContext<AppContextType>(defaultAppContext);
@@ -55,6 +61,7 @@ const AppProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [taxData, setTaxData] = useState<TaxData | null>(null);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<'perplexity' | 'claude' | 'auto'>('perplexity');
 
   const toggleSidebar = () => {
     setSidebarOpen(prev => !prev);
@@ -135,6 +142,14 @@ const AppProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       });
     }
   };
+  
+  const uploadTaxFiles = async (files: File[]) => {
+    // For now, process the first file to maintain compatibility
+    // This can be enhanced to handle multiple files properly
+    if (files.length > 0) {
+      await uploadTaxFile(files[0]);
+    }
+  };
 
   return (
     <AppContext.Provider
@@ -143,8 +158,11 @@ const AppProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         toggleSidebar,
         taxData,
         uploadTaxFile,
+        uploadTaxFiles,
         showDashboard,
         setShowDashboard,
+        selectedProvider,
+        setSelectedProvider,
       }}
     >
       {children}
