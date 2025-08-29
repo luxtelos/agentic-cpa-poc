@@ -130,6 +130,10 @@ export class ClaudeAdapter extends BaseLLMAdapter {
     // Load system prompt
     let systemPrompt = request.systemPrompt;
     if (!systemPrompt) {
+      try {
+        const promptResponse = await fetch('/prompt.txt');
+        systemPrompt = await promptResponse.text();
+      } catch (error) {
         console.warn('[ClaudeAdapter] Could not load default prompt:', error);
         systemPrompt = 'You are a helpful assistant analyzing tax documents.';
       }
