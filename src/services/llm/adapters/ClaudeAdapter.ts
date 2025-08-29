@@ -88,7 +88,7 @@ export class ClaudeAdapter extends BaseLLMAdapter {
         error: this.createLLMError(
           error.message || 'Failed to process with Claude',
           'CLAUDE_ERROR',
-          error.status >= 500
+          error?.status >= 500
         )
       };
     }
