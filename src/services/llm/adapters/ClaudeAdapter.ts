@@ -162,15 +162,9 @@ export class ClaudeAdapter extends BaseLLMAdapter {
       'anthropic-version': import.meta.env.VITE_CLAUDE_API_VERSION || '2023-06-01'
     };
     
-    // Check if we're in development mode and not using a proxy
-    if (this.baseUrl.includes('api.anthropic.com')) {
-      // Direct API call (not recommended for production)
-      headers['x-api-key'] = this.apiKey;
-      headers['anthropic-dangerous-direct-browser-access'] = 'true';
-    } else {
-      // Using proxy - API key should be added by proxy
-      headers['x-api-key'] = this.apiKey; // Still send it for the proxy to use
-    }
+    // Always set the API key and browser access header
+    headers['x-api-key'] = this.apiKey;
+    headers['anthropic-dangerous-direct-browser-access'] = 'true';
     
     const response = await fetch(url, {
       method: 'POST',
