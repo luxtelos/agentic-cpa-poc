@@ -154,7 +154,11 @@ export class ClaudeAdapter extends BaseLLMAdapter {
   }
   
   private async callClaudeAPI(request: ClaudeRequest): Promise<any> {
-    const url = `${this.baseUrl}/v1/messages`;
+    // Check if using external proxy (contains http/https and proxy) or local Vite proxy
+    const isExternalProxy = this.baseUrl.startsWith('http') && this.baseUrl.includes('proxy');
+    const url = isExternalProxy
+      ? `${this.baseUrl}/messages`  // External proxy already has /v1 in its base
+      : `${this.baseUrl}/v1/messages`;  // Local proxy or direct API needs /v1/messages
     
     // For development, we need to add the dangerous browser access header
     const headers: HeadersInit = {
